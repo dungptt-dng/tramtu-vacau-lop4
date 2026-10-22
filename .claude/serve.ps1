@@ -3,7 +3,7 @@ param([int]$Port = 8080)
 $root = Split-Path -Parent $PSScriptRoot
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
-$listener.Start()
+try { $listener.Start() } catch { Write-Error "Cannot listen on port ${Port}: $($_.Exception.Message)"; exit 1 }
 Write-Host "Serving $root at http://localhost:$Port/"
 $types = @{ '.html'='text/html; charset=utf-8'; '.css'='text/css'; '.js'='application/javascript'; '.json'='application/json'; '.png'='image/png'; '.jpg'='image/jpeg'; '.jpeg'='image/jpeg'; '.gif'='image/gif'; '.svg'='image/svg+xml'; '.mp3'='audio/mpeg'; '.wav'='audio/wav' }
 while ($listener.IsListening) {

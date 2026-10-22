@@ -1,0 +1,20 @@
+# Hệ điều hành
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Trình soạn thảo
+.vscode/
+.idea/
+*.swp
+*~
+
+# Cài đặt cá nhân của Claude Code (không chia sẻ)
+.claude/settings.local.json
+
+# File tạm / sao lưu
+*.tmp
+*.bak
+*.log

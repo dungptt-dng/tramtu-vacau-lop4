@@ -115,6 +115,12 @@ mark{background:var(--sun-soft);color:inherit;border-radius:4px;padding:0 .2em;f
 .sp-gv-i{flex:none;display:grid;place-items:center;width:4.3cqw;height:4.3cqw;margin-top:.3cqw;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFC94A,#F08A12 70%);border:.3cqw solid #FFF4D6;box-shadow:0 .25cqw .5cqw rgba(90,45,0,.35);color:#5A2D06}
 .sp-gv-i svg{width:58%;height:58%}
 .sp-gv-t{background:#FFF;color:#14286B;border-radius:.6cqw;padding:.15cqw .55cqw;font-family:var(--f-body);font-weight:800;font-size:1cqw;line-height:1.25;white-space:nowrap;box-shadow:0 .15cqw .4cqw rgba(20,40,107,.25)}
+/* Nhạc nền: cùng kiểu nút Góc giáo viên, đặt dưới bảng chỉ đường bên phải; nốt nhạc nhún theo phách khi đang bật */
+.sp-mu{left:90.6%;top:45%}
+.sp-mu .sp-gv-i{background:radial-gradient(circle at 35% 30%,#FF9BD0,#D93E95 70%);border-color:#FFE4F2;box-shadow:0 .25cqw .5cqw rgba(110,10,60,.35);color:#FFF}
+.sp-mu:not(.off) .sp-gv-i svg{animation:mu-bob 1.07s ease-in-out infinite}
+.sp-mu.off .sp-gv-i{background:radial-gradient(circle at 35% 30%,#E3E5EE,#9097AE 70%);border-color:#F4F5F9;box-shadow:0 .25cqw .5cqw rgba(30,35,60,.3);color:#3A4060}
+@keyframes mu-bob{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-8%) rotate(-8deg)}75%{transform:translateY(-8%) rotate(8deg)}}
 .sp-ten{left:37.6%;top:43.55%;width:27.9%;height:4.3%}
 .sp-lop{left:37.6%;top:53.6%;width:27.9%;height:4.3%}
 .sp-go{left:36%;top:59.8%;width:28%;height:5.7%;border-radius:999px}
@@ -4689,6 +4695,88 @@ function beep(kind) {
   } catch (e) { }
 }
 
+/* ---------- nhạc nền màn chào ----------
+   Bài nhạc thiếu nhi vui tươi do máy tự chơi (Web Audio), không cần tệp nhạc nên không vướng bản quyền, chạy cả khi mất mạng.
+   Đô trưởng, 112 nhịp/phút, 16 ô nhịp lặp lại: chuông (giai điệu, có tiếng vang), đàn gảy (hợp âm), bass và tiếng lắc nhẹ.
+   Chỉ chơi ở màn đăng nhập; trình duyệt chỉ cho phát tiếng sau lần chạm hoặc gõ phím đầu tiên của em. */
+var BGM = LS.get('tc4.bgm', true), MU = null, MUWANT = false, MU_STEP = 60 / 112 / 2;
+/* Mỗi ô nhịp 8 móc đơn: "nốt:số móc đơn", "-" là lặng */
+var MU_TUNE = ['G4:1 C5:1 E5:2 D5:1 C5:1 E5:2', 'A4:1 C5:1 E5:2 D5:1 C5:1 A4:2', 'F4:1 A4:1 C5:2 D5:2 F5:2', 'E5:2 D5:2 B4:2 G4:2',
+  'G4:1 C5:1 E5:2 D5:1 C5:1 G5:2', 'A5:2 G5:1 E5:1 C5:2 E5:2', 'F5:2 E5:1 D5:1 G4:1 B4:1 D5:2', 'C5:4 -:2 G4:1 A4:1',
+  'C5:2 F5:2 A5:2 F5:2', 'G5:2 D5:2 B4:2 D5:2', 'E5:1 G5:1 B5:2 A5:1 G5:1 E5:2', 'A5:3 G5:1 E5:2 C5:2',
+  'F5:1 F5:1 A5:2 G5:1 F5:1 C5:2', 'D5:1 D5:1 G5:2 F5:1 E5:1 D5:2', 'E5:2 G5:2 C6:2 G5:1 E5:1', 'D5:3 -:1 B4:1 A4:1 G4:2'];
+var MU_CH = [['C'], ['Am'], ['F'], ['G'], ['C'], ['Am'], ['F', 'G'], ['C'], ['F'], ['G'], ['Em'], ['Am'], ['F'], ['G'], ['C'], ['G']];
+/* Nốt đầu là bass, còn lại là hợp âm */
+var MU_CHORD = { C: ['C3', 'C4', 'E4', 'G4'], Am: ['A2', 'A3', 'C4', 'E4'], F: ['F2', 'A3', 'C4', 'F4'], G: ['G2', 'G3', 'B3', 'D4'], Em: ['E2', 'G3', 'B3', 'E4'] };
+function muHz(n) { return 440 * Math.pow(2, ({ C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[n.charAt(0)] + (Number(n.slice(-1)) - 4) * 12) / 12); }
+var MU_MEL = (function () {
+  var a = [], s = 0;
+  MU_TUNE.forEach(function (bar) { bar.split(' ').forEach(function (x) { var p = x.split(':'); if (p[0] !== '-') a[s] = [muHz(p[0]), Number(p[1])]; s += Number(p[1]); }); });
+  return a;
+})();
+/* Bật hay tắt nhạc theo màn đang mở (want), công tắc Nhạc nền và việc tab có đang hiện không */
+function music(want) {
+  MUWANT = want;
+  var on = want && BGM && !document.hidden;
+  if (on && !MU) muStart(); else if (!on && MU) muStop();
+}
+function muStart() {
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  var t = AC.currentTime, out = AC.createGain(), echo = AC.createDelay(), fb = AC.createGain(), wet = AC.createGain();
+  out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(1, t + 2); out.connect(AC.destination);
+  echo.delayTime.value = MU_STEP * 3; fb.gain.value = 0.28; wet.gain.value = 0.2;
+  echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(out);
+  var nb = AC.createBuffer(1, Math.floor(AC.sampleRate * 0.06), AC.sampleRate), d = nb.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  MU = { out: out, echo: echo, noise: nb, step: 0, at: t + 0.1 };
+  MU.timer = setInterval(muTick, 50); muTick();
+  if (AC.state !== 'running') AC.resume().catch(function () { });
+}
+function muStop() {
+  var m = MU, t = AC.currentTime; MU = null; clearInterval(m.timer);
+  m.out.gain.cancelScheduledValues(t); m.out.gain.setValueAtTime(Math.max(0.0001, m.out.gain.value), t); m.out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  setTimeout(function () { m.out.disconnect(); m.echo.disconnect(); }, 900);
+}
+/* Lên lịch trước 0,25 giây để nhạc đều tay dù trang đang bận */
+function muTick() {
+  var m = MU; if (!m) return;
+  if (m.at < AC.currentTime) m.at = AC.currentTime + 0.05;
+  while (m.at < AC.currentTime + 0.25) { muPlay(m, m.step, m.at); m.at += MU_STEP; m.step++; }
+}
+function muTone(m, type, f, t, peak, len, echo) {
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  o.connect(g); g.connect(m.out); if (echo) g.connect(m.echo); o.start(t); o.stop(t + len + 0.05);
+}
+function muPlay(m, step, t) {
+  var s = step % 128, i = s % 8, bar = MU_CH[s >> 3], ch = MU_CHORD[bar[bar.length > 1 && i >= 4 ? 1 : 0]], e = MU_MEL[s];
+  /* Giai điệu: tiếng chuông; vòng lặp thứ hai thêm chuông cao một quãng tám cho lấp lánh */
+  if (e) {
+    muTone(m, 'triangle', e[0], t, 0.07, e[1] * MU_STEP + 0.3, true);
+    muTone(m, 'sine', e[0] * 2, t, Math.floor(step / 128) % 2 ? 0.035 : 0.018, 0.35, true);
+  }
+  /* Bass phách 1 và 3, hợp âm gảy phách 2 và 4, thêm một tiếng nhẹ cuối ô cho nảy */
+  if (i === 0 || i === 4) { var f = muHz(ch[0]) * (i === 4 && bar.length === 1 ? 1.5 : 1); muTone(m, 'sine', f, t, 0.13, 0.4); muTone(m, 'triangle', f, t, 0.03, 0.22); }
+  if (i === 2 || i === 6 || i === 7) ch.slice(1).forEach(function (n, j) { muTone(m, 'triangle', muHz(n), t + j * 0.012, i === 7 ? 0.014 : 0.028, 0.26); });
+  /* Tiếng lắc: nhiễu trắng lọc cao, mạnh hơn ở nhịp lẻ */
+  var src = AC.createBufferSource(), hp = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = m.noise; hp.type = 'highpass'; hp.frequency.value = 6500; g.gain.value = i % 2 ? 0.05 : 0.025;
+  src.connect(hp); hp.connect(g); g.connect(m.out); src.start(t);
+}
+/* Cập nhật nút Nhạc nền tại chỗ để không mất chữ em đang gõ */
+function muPaint() {
+  app.querySelectorAll('[data-act="sp-music"]').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(BGM));
+    if (b.classList.contains('btn')) b.textContent = BGM ? 'Đang bật' : 'Đang tắt';
+    else { b.classList.toggle('off', !BGM); b.querySelector('.sp-gv-i').innerHTML = BGM ? ICON.note : ICON.noteOff; }
+  });
+}
+document.addEventListener('visibilitychange', function () { music(MUWANT); });
+['pointerdown', 'keydown', 'touchend'].forEach(function (ev) {
+  document.addEventListener(ev, function () { if (MU && AC.state !== 'running') AC.resume().catch(function () { }); }, true);
+});
+
 /* ---------- hình vẽ nhỏ ---------- */
 var ICON = {
   mark: '<svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="4" width="44" height="40" rx="13" fill="#2457D6"/><text x="24" y="32" text-anchor="middle" font-family="Baloo 2,sans-serif" font-weight="800" font-size="21" fill="#FFFFFF">Aa</text><path d="M40 1.5l1.9 3.9 4.3.6-3.1 3 .7 4.2-3.8-2-3.8 2 .7-4.2-3.1-3 4.3-.6z" fill="#FFC93C" stroke="#1B2340" stroke-width="1.2" stroke-linejoin="round"/></svg>',
@@ -4711,6 +4799,8 @@ var ICON = {
   run: '<svg viewBox="0 0 24 24" fill="none" stroke="#167F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>',
   sound: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
   mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  note: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5.5l11-2.5v13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></svg>',
+  noteOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5.5l11-2.5v13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
   lv: {
     1: '<svg class="lvl-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 34V18" stroke="var(--m1)" stroke-width="3" stroke-linecap="round"/><path d="M20 22c-8 0-11-6-11-10 6 0 11 3 11 10zM20 19c0-7 5-10 11-10 0 5-4 10-11 10z" fill="var(--m1)"/></svg>',
     2: '<svg class="lvl-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 36V14" stroke="var(--m2)" stroke-width="3" stroke-linecap="round"/><path d="M20 24c-9 0-12-6-12-10 7 0 12 3 12 10zM20 18c0-7 5-11 12-11 0 6-5 11-12 11zM20 30c-6 0-9-4-9-7 5 0 9 2 9 7z" fill="var(--m2)"/></svg>',
@@ -4726,6 +4816,7 @@ function go(view, extra) { V = Object.assign({ view: view }, extra || {}); rende
 function render() {
   var v = V.view;
   if (!S.cur && v !== 'gv' && v !== 'gvlock') v = 'pick';
+  music(v === 'pick');
   if (v === 'pick') { app.innerHTML = viewPick(); return; }
   var html = v === 'home' ? viewHome() : v === 'lesson' ? viewLesson() : v === 'quiz' ? viewQuiz()
     : v === 'result' ? viewResult() : v === 'send' ? viewSend() : v === 'gvlock' ? viewLock() : v === 'gv' ? viewGV() : viewHome();
@@ -4772,7 +4863,8 @@ function spPanel(k, title, body) {
 function viewPick() {
   return '<div class="sp-stage"><section class="splash" aria-labelledby="sp-h"><div class="sp-art" aria-hidden="true"></div>' +
     '<div class="sp-mob"><h2 id="sp-h">Chào em!</h2><p>Em nhập họ và tên, lớp của em rồi bấm Bắt đầu.</p></div>' +
-    '<nav class="sp-nav" aria-label="Tiện ích"><button class="sp-gv" data-act="gv-open"><span class="sp-gv-i" aria-hidden="true">' + ICON.board + '</span><span class="sp-gv-t">Góc giáo viên</span></button>' + spHot('sp-guide', 'sp-open', 'guide', 'Hướng dẫn') + spHot('sp-set', 'sp-open', 'set', 'Cài đặt') + spHot('sp-info', 'sp-open', 'info', 'Thông tin') + '</nav>' +
+    '<nav class="sp-nav" aria-label="Tiện ích"><button class="sp-gv" data-act="gv-open"><span class="sp-gv-i" aria-hidden="true">' + ICON.board + '</span><span class="sp-gv-t">Góc giáo viên</span></button>' +
+    '<button class="sp-gv sp-mu' + (BGM ? '' : ' off') + '" data-act="sp-music" aria-pressed="' + BGM + '"><span class="sp-gv-i" aria-hidden="true">' + (BGM ? ICON.note : ICON.noteOff) + '</span><span class="sp-gv-t">Nhạc nền</span></button>' + spHot('sp-guide', 'sp-open', 'guide', 'Hướng dẫn') + spHot('sp-set', 'sp-open', 'set', 'Cài đặt') + spHot('sp-info', 'sp-open', 'info', 'Thông tin') + '</nav>' +
     '<div class="sp-form"><label class="sp-lab" for="hs-ten">Họ và tên học sinh</label><input id="hs-ten" class="sp-in sp-ten" autocomplete="off" maxlength="40" placeholder="Ví dụ: Nguyễn Minh An" list="hs-known">' + knownHs() +
     '<label class="sp-lab" for="hs-lop">Lớp</label><input id="hs-lop" class="sp-in sp-lop" autocomplete="off" maxlength="12" placeholder="Ví dụ: 4/11" value="' + esc(DATA.cfg.lop || '') + '">' +
     spHot('sp-go', 'hs-go', '', 'Bắt đầu') + '</div>' +
@@ -4781,6 +4873,7 @@ function viewPick() {
       '<li>Mỗi trạm có ba chặng: <b>Khởi động</b>, <b>Tăng tốc</b>, <b>Chinh phục</b>. Em đạt từ 70% ở chặng trước thì mở được chặng sau.</li>' +
       '<li>Làm xong, em bấm “Gửi kết quả cho cô”.</li></ol>') +
     spPanel('set', 'Cài đặt', '<div class="sp-row"><span>Âm thanh</span><span class="sp"></span><button class="btn sm" data-act="sp-sound" aria-pressed="' + SND + '">' + (SND ? 'Đang bật' : 'Đang tắt') + '</button></div>' +
+      '<div class="sp-row"><span>Nhạc nền</span><span class="sp"></span><button class="btn sm" data-act="sp-music" aria-pressed="' + BGM + '">' + (BGM ? 'Đang bật' : 'Đang tắt') + '</button></div>' +
       '<div class="sp-row"><span>Dành cho thầy cô</span><span class="sp"></span><button class="btn sm" data-act="gv-open">Góc giáo viên</button></div>') +
     spPanel('info', 'Thông tin', '<p>Ôn luyện Luyện từ và câu – Tiếng Việt 4.</p><p>Giáo viên: <b>Phạm Thị Thùy Dung</b><br>Trường Tiểu học Huỳnh Ngọc Huệ<br>Phường Thanh Khê, thành phố Đà Nẵng</p>' +
       '<p>Kết quả của em được lưu trên máy này.</p>') +
@@ -5255,6 +5348,7 @@ app.addEventListener('click', function (ev) {
     case 'sp-open': openSp(k); break;
     case 'sp-close': openSp(null); break;
     case 'sp-sound': SND = !SND; LS.set('tc4.snd', SND); el.textContent = SND ? 'Đang bật' : 'Đang tắt'; el.setAttribute('aria-pressed', String(SND)); break;
+    case 'sp-music': BGM = !BGM; LS.set('tc4.bgm', BGM); music(MUWANT); muPaint(); break;
     case 'sp-lv': toast(LVN[k] + ': ' + LVD[k].toLocaleLowerCase('vi') + '. Em nhập họ tên, lớp rồi bấm Bắt đầu nhé!'); break;
     case 'tap': V.tap = Number(k); render(); break;
     case 'open': go('lesson', { sid: k }); break;

@@ -4698,7 +4698,8 @@ function beep(kind) {
 /* ---------- nhạc nền màn chào ----------
    Bài nhạc thiếu nhi vui tươi do máy tự chơi (Web Audio), không cần tệp nhạc nên không vướng bản quyền, chạy cả khi mất mạng.
    Đô trưởng, 112 nhịp/phút, 16 ô nhịp lặp lại: chuông (giai điệu, có tiếng vang), đàn gảy (hợp âm), bass và tiếng lắc nhẹ.
-   Chỉ chơi ở màn đăng nhập; trình duyệt chỉ cho phát tiếng sau lần chạm hoặc gõ phím đầu tiên của em. */
+   Chơi ngay khi mở app: ở màn đăng nhập và trang chính (máy nhớ bạn cũ thì mở thẳng trang chính), tắt khi vào bài, làm bài và Góc giáo viên.
+   Trình duyệt chỉ cho phát tiếng sau lần chạm, bấm hoặc gõ phím đầu tiên trên trang, nên chạm vào đâu nhạc cũng bắt đầu. */
 var BGM = LS.get('tc4.bgm', true), MU = null, MUWANT = false, MU_STEP = 60 / 112 / 2;
 /* Mỗi ô nhịp 8 móc đơn: "nốt:số móc đơn", "-" là lặng */
 var MU_TUNE = ['G4:1 C5:1 E5:2 D5:1 C5:1 E5:2', 'A4:1 C5:1 E5:2 D5:1 C5:1 A4:2', 'F4:1 A4:1 C5:2 D5:2 F5:2', 'E5:2 D5:2 B4:2 G4:2',
@@ -4722,6 +4723,8 @@ function music(want) {
 }
 function muStart() {
   try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  /* iPhone, iPad: phát cả khi gạt nút im lặng, như nghe nhạc */
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
   var t = AC.currentTime, out = AC.createGain(), echo = AC.createDelay(), fb = AC.createGain(), wet = AC.createGain();
   out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(1, t + 2); out.connect(AC.destination);
   echo.delayTime.value = MU_STEP * 3; fb.gain.value = 0.28; wet.gain.value = 0.2;
@@ -4769,12 +4772,19 @@ function muPaint() {
   app.querySelectorAll('[data-act="sp-music"]').forEach(function (b) {
     b.setAttribute('aria-pressed', String(BGM));
     if (b.classList.contains('btn')) b.textContent = BGM ? 'Đang bật' : 'Đang tắt';
+    else if (b.classList.contains('icon-btn')) { b.innerHTML = BGM ? ICON.note : ICON.noteOff; b.setAttribute('aria-label', BGM ? 'Tắt nhạc nền' : 'Bật nhạc nền'); }
     else { b.classList.toggle('off', !BGM); b.querySelector('.sp-gv-i').innerHTML = BGM ? ICON.note : ICON.noteOff; }
   });
 }
+/* Mở khoá tiếng ở lần chạm đầu: gọi resume và phát một mẫu im lặng (Safari cũ cần thêm bước này) */
+function muUnlock() {
+  if (!MU || AC.state === 'running') return;
+  AC.resume().catch(function () { });
+  try { var s = AC.createBufferSource(); s.buffer = AC.createBuffer(1, 1, 22050); s.connect(AC.destination); s.start(0); } catch (e) { }
+}
 document.addEventListener('visibilitychange', function () { music(MUWANT); });
-['pointerdown', 'keydown', 'touchend'].forEach(function (ev) {
-  document.addEventListener(ev, function () { if (MU && AC.state !== 'running') AC.resume().catch(function () { }); }, true);
+['pointerdown', 'pointerup', 'mousedown', 'click', 'keydown', 'touchstart', 'touchend'].forEach(function (ev) {
+  document.addEventListener(ev, muUnlock, true);
 });
 
 /* ---------- hình vẽ nhỏ ---------- */
@@ -4816,7 +4826,7 @@ function go(view, extra) { V = Object.assign({ view: view }, extra || {}); rende
 function render() {
   var v = V.view;
   if (!S.cur && v !== 'gv' && v !== 'gvlock') v = 'pick';
-  music(v === 'pick');
+  music(v === 'pick' || v === 'home');
   if (v === 'pick') { app.innerHTML = viewPick(); return; }
   var html = v === 'home' ? viewHome() : v === 'lesson' ? viewLesson() : v === 'quiz' ? viewQuiz()
     : v === 'result' ? viewResult() : v === 'send' ? viewSend() : v === 'gvlock' ? viewLock() : v === 'gv' ? viewGV() : viewHome();
@@ -4832,7 +4842,9 @@ function topBar(v) {
   var me = S.cur && v !== 'gv' && v !== 'gvlock' ? hsInfo(S.cur) : null, cl = (me && me.lop) || DATA.cfg.lop;
   var lop = cl ? ' · Lớp ' + esc(cl) : '';
   return '<header class="top"><button class="brand" data-act="home" aria-label="Về trang chính">' + ICON.mark + '<span><h1>Vương quốc Từ hay – Câu đẹp Lớp 4</h1><small>Luyện từ và câu · Tiếng Việt 4' + lop + '</small></span></button>' +
-    '<div class="top-tools">' + hs + '<button class="icon-btn" data-act="sound" aria-label="' + (SND ? 'Tắt âm thanh' : 'Bật âm thanh') + '" title="Âm thanh">' + (SND ? ICON.sound : ICON.mute) + '</button></div></header>';
+    '<div class="top-tools">' + hs +
+    (v === 'home' ? '<button class="icon-btn" data-act="sp-music" aria-pressed="' + BGM + '" aria-label="' + (BGM ? 'Tắt nhạc nền' : 'Bật nhạc nền') + '" title="Nhạc nền">' + (BGM ? ICON.note : ICON.noteOff) + '</button>' : '') +
+    '<button class="icon-btn" data-act="sound" aria-label="' + (SND ? 'Tắt âm thanh' : 'Bật âm thanh') + '" title="Âm thanh">' + (SND ? ICON.sound : ICON.mute) + '</button></div></header>';
 }
 /* Chữ cái đầu của tên (tiếng cuối trong họ tên) để vẽ ảnh đại diện */
 function initial(name) { var w = normTen(name).split(' '); return (w[w.length - 1] || '?').charAt(0).toLocaleUpperCase('vi'); }

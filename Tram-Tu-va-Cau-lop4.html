@@ -505,6 +505,11 @@ table.mx{border-collapse:collapse;font-size:.82rem;min-width:100%}
 .wkbars i{display:block;width:100%;max-width:38px;min-height:2px;background:var(--accent);border-radius:6px 6px 0 0}
 .wkbars b{color:var(--ink);font-variant-numeric:tabular-nums}
 @media (max-width:520px){.prog .bar{width:56px}.prog.wide .bar{width:80px}}
+.fbbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 14px;margin:6px 0 10px;border-radius:14px;border:2px solid var(--line-2);background:var(--surface);font-size:.9rem}
+.fbbar .sp{flex:1}
+.fbbar.live{border-color:var(--ok-line);background:var(--ok-soft);color:var(--ok-ink)}
+.fbbar.bad{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad-ink)}
+.fbbar .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--ok-2);margin-right:8px;vertical-align:middle}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);align-items:center}
 .legend i{display:inline-block;width:10px;height:14px;border-radius:2px;vertical-align:middle;margin-right:4px}
 .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
@@ -4648,7 +4653,7 @@ var MUC = { T: 'Hoàn thành tốt', H: 'Hoàn thành', C: 'Chưa hoàn thành' 
 function normTen(s) { return String(s == null ? '' : s).normalize('NFC').replace(/\s+/g, ' ').trim(); }
 function hoaTen(s) { return normTen(s).split(' ').map(function (w) { return w.charAt(0).toLocaleUpperCase('vi') + w.slice(1); }).join(' '); }
 function hsKey(ten, lop) { var r = seeded(normTen(lop).toLocaleLowerCase('vi') + '|' + normTen(ten).toLocaleLowerCase('vi')); return 'h' + Math.floor(r() * 4294967296).toString(36) + Math.floor(r() * 4294967296).toString(36); }
-function hsInfo(ma) { var r = S.hs[ma]; if (r && r.ten) return r; r = GV && GV.hs[ma]; return r && r.ten ? r : null; }
+function hsInfo(ma) { var r = S.hs[ma]; if (r && r.ten) return r; r = GV && GV.hs[ma]; if (r && r.ten) return r; r = FB && FB.hs[ma]; return r && r.ten ? r : null; }
 function who(ma, noLop) { var r = hsInfo(ma); return r ? r.ten + (r.lop && !noLop ? ' · ' + r.lop : '') : 'Số ' + ma; }
 function byWho(a, b) { return who(a).localeCompare(who(b), 'vi', { numeric: true }); }
 function packHs(mas) {
@@ -5157,7 +5162,7 @@ function finishQuiz() {
   if (Q.m === 0) a.v = Q.mode;
   var ws = Q.items.filter(function (x) { return x.q.t === 'write' && x.text.trim(); }).map(function (x) { return [x.q.id, x.text.trim().slice(0, 400)]; });
   if (ws.length) a.s = ws;
-  S.hs[S.cur] = S.hs[S.cur] || { a: [] }; S.hs[S.cur].a.push(a); saveS();
+  S.hs[S.cur] = S.hs[S.cur] || { a: [] }; S.hs[S.cur].a.push(a); saveS(); fbPush(S.cur, a);
   beep('end');
   go('result', { att: a });
 }
@@ -5415,12 +5420,13 @@ function gvSave(mas) {
   return mas.reduce(function (p, ma) { return p.then(function () { return col.doc('hs-' + ma).set(GV.hs[ma]); }); }, Promise.resolve())
     .catch(function (e) { toast('Chưa lưu được vào tài khoản (' + (e && e.code || 'lỗi') + '). Dữ liệu tạm giữ trên máy này.'); LS.set('tc4.gv', GV); });
 }
-/* gộp dữ liệu: máy này + đã nhập */
+/* gộp dữ liệu: máy này + đã nhập + Firebase */
 function records() {
   var out = {}, seen = {};
   function add(ma, a) { var key = ma + ':' + a.i; if (seen[key]) return; seen[key] = 1; (out[ma] = out[ma] || []).push(a); }
   Object.keys(GV.hs).forEach(function (ma) { (GV.hs[ma].a || []).forEach(function (a) { add(ma, a); }); });
   Object.keys(S.hs).forEach(function (ma) { (S.hs[ma].a || []).forEach(function (a) { add(ma, a); }); });
+  Object.keys(FB.hs).forEach(function (ma) { FB.hs[ma].a.forEach(function (a) { add(ma, a); }); });
   Object.keys(out).forEach(function (ma) { out[ma].sort(function (x, y) { return x.t - y.t; }); });
   return out;
 }
@@ -5431,7 +5437,7 @@ function themeOf(sid) { var s = BYID[sid]; return s && !s.rev ? s.tap + '|' + s.
 function viewGV() {
   var tabs = [['kq', 'Kết quả lớp'], ['hs', 'Học sinh'], ['nhap', 'Nhập mã'], ['ai', 'Trợ lý AI'], ['cauhoi', 'Câu hỏi'], ['caidat', 'Cài đặt']];
   var note = !GVREADY ? 'Đang mở dữ liệu lớp…' : DB ? 'Kết quả đã nhập được lưu trong tài khoản Claude của cô, mở trên máy nào cũng thấy.' : 'Kết quả đã nhập chỉ lưu trên trình duyệt của máy này. Mở app trong Claude (đã đăng nhập) để lưu vào tài khoản.';
-  var h = '<div class="gv-head"><h2>Góc giáo viên</h2><button class="btn sm" data-act="gv-lockout">Khoá lại</button></div><p class="store-note">' + note + '</p><nav class="tabs" role="tablist">' +
+  var h = '<div class="gv-head"><h2>Góc giáo viên</h2><button class="btn sm" data-act="gv-lockout">Khoá lại</button></div>' + fbNote() + (FB.teacher ? '' : '<p class="store-note">' + note + '</p>') + '<nav class="tabs" role="tablist">' +
     tabs.map(function (t) { return '<button role="tab" aria-selected="' + (G.tab === t[0]) + '" class="' + (G.tab === t[0] ? 'on' : '') + '" data-act="gv-tab" data-k="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</nav>';
   h += '<section class="panel">' + (G.tab === 'kq' ? tabKQ() : G.tab === 'hs' ? tabHS() : G.tab === 'nhap' ? tabNhap() : G.tab === 'ai' ? tabAI() : G.tab === 'cauhoi' ? tabBank() : tabSet()) + '</section>';
   h += pendBar();
@@ -5958,8 +5964,106 @@ function pubFallback(next, why) {
   showCopy('Chưa cập nhật được cho cả lớp', JSON.stringify({ cfg: next.cfg, extra: next.extra, an: next.an }), why + ' Nếu học sinh dùng file app, cô vào tab Cài đặt bấm “Tải file app cho học sinh” để có file mới đã gồm thay đổi. Hoặc cô mở app trong Claude bằng tài khoản đã tạo app rồi bấm lại “Cập nhật cho cả lớp”, hoặc sao chép đoạn dữ liệu dưới đây gửi cho Claude để cập nhật giúp. Các thay đổi vẫn được giữ trên máy này.');
 }
 
+/* ---------- đồng bộ Firebase: học sinh gửi từng lượt lên Firestore, góc giáo viên nghe trực tiếp ----------
+   Chưa có FBCFG thì app chạy như cũ (lưu trên máy + nhập mã). */
+var FBCFG = {
+  apiKey: 'AIzaSyDtK00Dm1wSeABFTdDlOthtrjL9yO3dKMA',
+  authDomain: 'tramtu-vacau-lop4.firebaseapp.com',
+  projectId: 'tramtu-vacau-lop4',
+  storageBucket: 'tramtu-vacau-lop4.firebasestorage.app',
+  messagingSenderId: '151129256059',
+  appId: '1:151129256059:web:2361cfd55c292cec5e72de'
+};
+var FBV = '10.14.1';
+var FB = { on: false, db: null, auth: null, user: null, teacher: false, hs: {}, n: 0, err: '', unsub: null, busy: false };
+function fbLoad() {
+  if (!FBCFG) return Promise.reject(new Error('no-config'));
+  if (window.firebase && window.firebase.firestore) return Promise.resolve();
+  return ['app', 'auth', 'firestore'].reduce(function (p, m) {
+    return p.then(function () {
+      return new Promise(function (ok, no) {
+        var s = document.createElement('script'); s.src = 'https://www.gstatic.com/firebasejs/' + FBV + '/firebase-' + m + '-compat.js';
+        s.onload = ok; s.onerror = function () { no(new Error('load ' + m)); }; document.head.appendChild(s);
+      });
+    });
+  }, Promise.resolve());
+}
+function fbStart() {
+  fbLoad().then(function () {
+    if (!firebase.apps.length) firebase.initializeApp(FBCFG);
+    FB.auth = firebase.auth(); FB.db = firebase.firestore(); FB.on = true;
+    FB.auth.onAuthStateChanged(function (u) {
+      FB.user = u; FB.teacher = !!(u && !u.isAnonymous);
+      if (!u) { FB.auth.signInAnonymously().catch(function (e) { FB.err = e.code || 'auth'; }); return; }
+      fbFlush();
+      if (FB.teacher) fbListen(); else fbStop();
+      if (V.view === 'gv') render();
+    });
+    window.addEventListener('online', fbFlush);
+  }).catch(function (e) { FB.err = e.message === 'no-config' ? '' : 'Không tải được Firebase'; });
+}
+/* Lượt chơi dạng lưu trên Firestore (mảng lồng mảng không được phép, nên câu tự viết đổi thành object) */
+function fbDoc(ma, a, inf) {
+  var d = { ma: ma, ten: (inf && inf.ten) || '', lop: (inf && inf.lop) || '', i: a.i, l: a.l, m: a.m || 0, t: a.t, n: a.n, k: a.k, w: a.w || [], x: a.x || [] };
+  if (a.v) d.v = a.v;
+  if (a.s) d.s = a.s.map(function (x) { return { q: x[0], v: x[1] }; });
+  return d;
+}
+function fbAtt(d) {
+  var a = { i: d.i, l: d.l, m: d.m, t: d.t, n: d.n, k: d.k, w: d.w || [], x: d.x || [] };
+  if (d.v) a.v = d.v;
+  if (d.s) a.s = d.s.map(function (x) { return [x.q, x.v]; });
+  return a;
+}
+/* Gửi mọi lượt chưa gửi; lượt đã có trên server thì luật chỉ cho tạo mới nên bị từ chối, coi như đã gửi */
+function fbFlush() {
+  if (!FB.on || !FB.user || FB.busy || !navigator.onLine) return;
+  var up = LS.get('tc4.up', {}), todo = [];
+  var R = FB.teacher ? records() : null;
+  Object.keys(R || S.hs).forEach(function (ma) {
+    (R ? R[ma] : attemptsOf(ma)).forEach(function (a) { if (!up[a.i] && BYID[a.l] && !(FB.hs[ma] && FB.hs[ma].have[a.i])) todo.push([ma, a]); });
+  });
+  if (!todo.length) return;
+  FB.busy = true;
+  var col = FB.db.collection('luot');
+  todo.reduce(function (p, x) {
+    return p.then(function () {
+      return col.doc(x[1].i).set(fbDoc(x[0], x[1], hsInfo(x[0]))).then(function () { up[x[1].i] = 1; }, function (e) { if (e && e.code === 'permission-denied') up[x[1].i] = 1; else throw e; });
+    });
+  }, Promise.resolve()).catch(function (e) { FB.err = e.code || 'write'; }).then(function () { LS.set('tc4.up', up); FB.busy = false; });
+}
+function fbPush(ma, a) {
+  if (!FB.on || !FB.user) return;
+  var up = LS.get('tc4.up', {});
+  FB.db.collection('luot').doc(a.i).set(fbDoc(ma, a, hsInfo(ma))).then(function () { up[a.i] = 1; LS.set('tc4.up', up); }, function () { });
+}
+function fbListen() {
+  if (FB.unsub) return;
+  FB.unsub = FB.db.collection('luot').onSnapshot(function (snap) {
+    var hs = {};
+    snap.forEach(function (doc) {
+      var d = doc.data(), r = hs[d.ma] = hs[d.ma] || { ten: '', lop: '', a: [], have: {} };
+      if (d.ten) { r.ten = d.ten; r.lop = d.lop; }
+      r.a.push(fbAtt(d)); r.have[d.i] = 1;
+    });
+    FB.hs = hs; FB.n = snap.size; FB.err = '';
+    if (V.view === 'gv' && (G.tab === 'kq' || G.tab === 'hs')) render();
+    fbFlush();
+  }, function (e) { FB.err = e.code === 'permission-denied' ? 'Tài khoản này chưa được cấp quyền xem kết quả lớp.' : 'Mất kết nối Firebase (' + e.code + ')'; fbStop(); if (V.view === 'gv') render(); });
+}
+function fbStop() { if (FB.unsub) { FB.unsub(); FB.unsub = null; } FB.hs = {}; FB.n = 0; }
+function fbNote() {
+  if (!FBCFG) return '';
+  if (!FB.on) return '<div class="fbbar"><span>' + esc(FB.err || 'Đang kết nối Firebase…') + '</span></div>';
+  if (!FB.teacher) return '<div class="fbbar"><span>Đăng nhập Google để xem trực tiếp kết quả của cả lớp từ mọi máy.</span><span class="sp"></span><button class="btn sm pri" data-act="fb-in">Đăng nhập Google</button></div>';
+  return '<div class="fbbar' + (FB.err ? ' bad' : ' live') + '"><span>' + (FB.err ? esc(FB.err) : '<i class="dot" aria-hidden="true"></i>Đồng bộ trực tiếp · ' + FB.n + ' lượt chơi trên Firebase') + '</span><span class="small muted">' + esc(FB.user.email || '') + '</span><span class="sp"></span><button class="btn sm" data-act="fb-out">Đăng xuất</button></div>';
+}
+GVACT['fb-in'] = function () { FB.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { SS.set('tc4.gvtab', G.tab); SS.set('tc4.gvok', String(Date.now())); FB.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); return; } if (e.code !== 'auth/popup-closed-by-user') toast('Chưa đăng nhập được (' + e.code + ')'); }); };
+GVACT['fb-out'] = function () { fbStop(); FB.auth.signOut(); };
+
 /*__TEST__*/
 /* ---------- khởi động ---------- */
+fbStart();
 if (SS.get('tc4.gvtab') && SS.get('tc4.gvok')) enterGV(); else render();
 })();
 </script>

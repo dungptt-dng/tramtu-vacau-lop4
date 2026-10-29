@@ -18,3 +18,7 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.log
+
+# Firebase CLI
+firebase-debug.log
+.firebaserc.local

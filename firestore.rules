@@ -1,0 +1,35 @@
+rules_version = '2';
+// Luật cho app Vương quốc Từ hay – Câu đẹp Lớp 4.
+// Học sinh (đăng nhập ẩn danh) chỉ được GỬI lượt chơi mới, không đọc, sửa hay xoá được.
+// Chỉ tài khoản Google của giáo viên trong danh sách dưới đây mới xem và xoá được.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isTeacher() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['phamthithuydungdn@gmail.com'];
+    }
+    function validLuot(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['ma', 'ten', 'lop', 'i', 'l', 'm', 't', 'n', 'k', 'w', 'x', 'v', 's'])
+        && d.keys().hasAll(['ma', 'ten', 'lop', 'i', 'l', 'm', 't', 'n', 'k', 'w', 'x'])
+        && d.i == id && id.size() <= 40
+        && d.ma is string && d.ma.size() <= 40
+        && d.ten is string && d.ten.size() <= 40
+        && d.lop is string && d.lop.size() <= 12
+        && d.l is string && d.l.size() <= 20
+        && d.m is int && d.m >= 0 && d.m <= 3
+        && d.t is int
+        && d.n is int && d.n >= 0 && d.n <= 60
+        && d.k is int && d.k >= 0 && d.k <= 2 * d.n
+        && d.w is list && d.w.size() <= 60
+        && d.x is list && d.x.size() <= 60
+        && (!('v' in d) || d.v in ['k', 'r'])
+        && (!('s' in d) || (d.s is list && d.s.size() <= 20));
+    }
+    match /luot/{id} {
+      allow create: if request.auth != null && validLuot(id);
+      allow read, delete: if isTeacher();
+    }
+  }
+}

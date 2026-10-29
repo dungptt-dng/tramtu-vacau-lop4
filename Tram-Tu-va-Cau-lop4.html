@@ -489,6 +489,22 @@ table.mx{border-collapse:collapse;font-size:.82rem;min-width:100%}
 .cell{display:inline-flex;gap:2px}
 .cell i{width:9px;height:14px;border-radius:2px;background:var(--line)}
 .cell i.T{background:var(--ok)}.cell i.H{background:var(--star)}.cell i.C{background:var(--bad)}
+.hs-t td:first-child,.hs-t th:first-child{text-align:left}
+.hs-t th{vertical-align:middle;white-space:normal;min-width:70px}
+.hs-t tr.sel td{background:var(--accent-soft)}
+.lnk{border:0;background:none;padding:0;min-height:32px;font-weight:800;color:var(--accent);text-align:left;text-decoration:underline;text-underline-offset:3px}
+.prog{display:inline-flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.prog .bar{width:90px;height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog .bar i,.barrow .prog .bar i{display:block;height:100%;background:var(--ok)}
+.prog b{min-width:3.2em;text-align:left}
+.prog.wide .bar{width:160px}
+.barrow.th-row{grid-template-columns:minmax(0,1fr) auto}
+.sub{margin:4px 0 0;font-size:1rem}
+.wkbars{display:grid;grid-template-columns:repeat(auto-fit,minmax(28px,1fr));gap:6px;height:150px;align-items:end}
+.wkbars div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;font-size:.75rem;color:var(--muted)}
+.wkbars i{display:block;width:100%;max-width:38px;min-height:2px;background:var(--accent);border-radius:6px 6px 0 0}
+.wkbars b{color:var(--ink);font-variant-numeric:tabular-nums}
+@media (max-width:520px){.prog .bar{width:56px}.prog.wide .bar{width:80px}}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);align-items:center}
 .legend i{display:inline-block;width:10px;height:14px;border-radius:2px;vertical-align:middle;margin-right:4px}
 .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
@@ -5413,11 +5429,11 @@ var THEMES = (function () { var t = [], seen = {}; LESSONS.forEach(function (L) 
 function themeOf(sid) { var s = BYID[sid]; return s && !s.rev ? s.tap + '|' + s.chuDiem : null; }
 
 function viewGV() {
-  var tabs = [['kq', 'Kết quả lớp'], ['nhap', 'Nhập mã'], ['ai', 'Trợ lý AI'], ['cauhoi', 'Câu hỏi'], ['caidat', 'Cài đặt']];
+  var tabs = [['kq', 'Kết quả lớp'], ['hs', 'Học sinh'], ['nhap', 'Nhập mã'], ['ai', 'Trợ lý AI'], ['cauhoi', 'Câu hỏi'], ['caidat', 'Cài đặt']];
   var note = !GVREADY ? 'Đang mở dữ liệu lớp…' : DB ? 'Kết quả đã nhập được lưu trong tài khoản Claude của cô, mở trên máy nào cũng thấy.' : 'Kết quả đã nhập chỉ lưu trên trình duyệt của máy này. Mở app trong Claude (đã đăng nhập) để lưu vào tài khoản.';
   var h = '<div class="gv-head"><h2>Góc giáo viên</h2><button class="btn sm" data-act="gv-lockout">Khoá lại</button></div><p class="store-note">' + note + '</p><nav class="tabs" role="tablist">' +
     tabs.map(function (t) { return '<button role="tab" aria-selected="' + (G.tab === t[0]) + '" class="' + (G.tab === t[0] ? 'on' : '') + '" data-act="gv-tab" data-k="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</nav>';
-  h += '<section class="panel">' + (G.tab === 'kq' ? tabKQ() : G.tab === 'nhap' ? tabNhap() : G.tab === 'ai' ? tabAI() : G.tab === 'cauhoi' ? tabBank() : tabSet()) + '</section>';
+  h += '<section class="panel">' + (G.tab === 'kq' ? tabKQ() : G.tab === 'hs' ? tabHS() : G.tab === 'nhap' ? tabNhap() : G.tab === 'ai' ? tabAI() : G.tab === 'cauhoi' ? tabBank() : tabSet()) + '</section>';
   h += pendBar();
   return h;
 }
@@ -5526,6 +5542,89 @@ function saveFile(name, data, mime, fallback) {
   });
 }
 function showCopy(title, text, note) { G.copy = { title: title, text: text, note: note || 'Không tải được file ở đây. Cô sao chép nội dung dưới đây rồi dán vào Excel hoặc Google Trang tính.' }; G.tab = 'nhap'; render(); }
+
+/* ---------- tab học sinh: lượt chơi và tiến độ từng em ---------- */
+var WEEK1 = new Date(2026, 8, 7).getTime();
+function weekOf(t) { return Math.floor((t - WEEK1) / 864e5 / 7) + 1; }
+function dayStart(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function ago(t) { var d = Math.round((dayStart(Date.now()) - dayStart(t)) / 864e5); return d <= 0 ? 'Hôm nay' : d === 1 ? 'Hôm qua' : d + ' ngày trước'; }
+function dueLessons() { var w = weekNow(), ls = LESSONS.filter(function (L) { return L.tuan <= w; }); return ls.length ? ls : [LESSONS[0]]; }
+function hsStat(atts, due) {
+  var wk = Date.now() - 7 * 864e5, sum = 0, st = 0, lv = 0, done = {};
+  atts.forEach(function (a) { sum += pct(a); done[a.l] = 1; });
+  LESSONS.forEach(function (L) { for (var m = 1; m <= 3; m++) { var b = bestBy(atts, L.id, m); st += starsFor(b); if (b >= 0.7) lv++; } });
+  return {
+    n: atts.length, n7: atts.filter(function (a) { return a.t >= wk; }).length,
+    pass: due.filter(function (L) { return bestBy(atts, L.id, 1) >= 0.7; }).length, due: due.length,
+    tried: LESSONS.filter(function (L) { return done[L.id]; }).length,
+    stars: st, lv: lv, avg: atts.length ? sum / atts.length : -1, last: atts.length ? atts[atts.length - 1].t : 0
+  };
+}
+function hsStatus(x) {
+  if (!x.n) return '<span class="tag warn">Chưa luyện</span>';
+  if (x.pass >= x.due) return '<span class="tag ok">Đúng tiến độ</span>';
+  if (Date.now() - x.last > 7 * 864e5) return '<span class="tag warn">Lâu chưa luyện</span>';
+  return '<span class="tag">Còn ' + (x.due - x.pass) + ' bài</span>';
+}
+function progBar(a, b, cls) { var r = b ? Math.min(1, a / b) : 0; return '<span class="prog' + (cls ? ' ' + cls : '') + '"><span class="bar"><i style="width:' + Math.round(r * 100) + '%"></i></span><b>' + a + '/' + b + '</b></span>'; }
+function weekBars(atts, nWeeks) {
+  var cur = Math.max(1, weekOf(Date.now())), from = Math.max(1, cur - nWeeks + 1), cnt = {}, max = 1;
+  atts.forEach(function (a) { var w = weekOf(a.t); if (w >= from && w <= cur) { cnt[w] = (cnt[w] || 0) + 1; max = Math.max(max, cnt[w]); } });
+  var h = '<div class="wkbars" role="img" aria-label="Số lượt chơi theo tuần">';
+  for (var w = from; w <= cur; w++) h += '<div><b>' + (cnt[w] || 0) + '</b><i style="height:' + Math.round((cnt[w] || 0) / max * 100) + '%"></i><span>T' + w + '</span></div>';
+  return h + '</div>';
+}
+function tabHS() {
+  var R = records(), list = students(), due = dueLessons(), sort = G.hsSort || 'ten';
+  var X = {}; list.forEach(function (ma) { X[ma] = hsStat(R[ma] || [], due); });
+  var all = []; Object.keys(R).forEach(function (ma) { all = all.concat(R[ma]); });
+  var on = list.filter(function (ma) { return X[ma].n; }).length, n7 = 0, ok = 0;
+  list.forEach(function (ma) { n7 += X[ma].n7; if (X[ma].n && X[ma].pass >= X[ma].due) ok++; });
+  var rows = list.slice();
+  var by = { luot: function (x) { return -x.n; }, tiendo: function (x) { return -x.pass * 1000 - x.lv; }, gannhat: function (x) { return -x.last; } }[sort];
+  if (by) rows.sort(function (a, b) { return by(X[a]) - by(X[b]) || byWho(a, b); });
+  var h = '<div class="box"><h3>Lượt chơi và tiến độ của lớp</h3>' +
+    '<div class="kpis"><div class="kpi"><b>' + on + '/' + (DATA.cfg.siSo || 35) + '</b><span>em đã luyện</span></div><div class="kpi"><b>' + all.length + '</b><span>lượt chơi từ đầu năm</span></div><div class="kpi"><b>' + n7 + '</b><span>lượt trong 7 ngày qua</span></div><div class="kpi"><b>' + ok + '</b><span>em đúng tiến độ (đến tuần ' + weekNow() + ')</span></div></div>' +
+    '<h4 class="sub">Số lượt chơi cả lớp theo tuần</h4>' + weekBars(all, 8) + '</div>';
+  if (G.hs && X[G.hs]) h += hsDetail(G.hs, R[G.hs] || [], X[G.hs]);
+  h += '<div class="box"><div class="form"><label>Sắp xếp<select id="gv-hssort" class="field">' + [['ten', 'Theo tên'], ['luot', 'Nhiều lượt chơi nhất'], ['tiendo', 'Tiến độ cao nhất'], ['gannhat', 'Luyện gần đây nhất']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === sort ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
+    '<span class="sp" style="flex:1"></span><button class="btn sm" data-act="gv-hscsv">Tải bảng tiến độ (CSV)</button></div>';
+  if (!list.length) return h + '<p class="muted">Chưa có học sinh nào. Học sinh luyện trên máy này sẽ hiện ngay ở đây; kết quả từ máy khác, cô dán vào tab “Nhập mã”.</p></div>';
+  h += '<div class="scroll"><table class="mx hs-t"><thead><tr><th>Học sinh</th><th>Lượt chơi</th><th>7 ngày qua</th><th>Tiến độ (bài đạt / bài đến tuần ' + weekNow() + ')</th><th>Sao</th><th>Điểm TB</th><th>Lần gần nhất</th><th>Tình trạng</th></tr></thead><tbody>' +
+    rows.map(function (ma) {
+      var x = X[ma];
+      return '<tr' + (ma === G.hs ? ' class="sel"' : '') + '><td><button class="lnk" data-act="gv-hs" data-k="' + esc(ma) + '">' + esc(who(ma)) + '</button></td><td><b>' + x.n + '</b></td><td>' + (x.n7 || '–') + '</td><td>' + progBar(x.pass, x.due) + '</td><td>' + x.stars + ' ★</td><td>' + (x.avg < 0 ? '–' : Math.round(x.avg * 100) + '%') + '</td><td>' + (x.last ? ago(x.last) : '–') + '</td><td>' + hsStatus(x) + '</td></tr>';
+    }).join('') + '</tbody></table></div><p class="small muted">Một bài tính là đạt khi em được từ 2 sao (≥70%) ở mức Khởi động. Chạm vào tên em để xem chi tiết.</p></div>';
+  return h;
+}
+function hsDetail(ma, atts, x) {
+  var h = '<div class="box hs-detail"><div class="gv-head"><h3 style="flex:1">' + esc(who(ma)) + '</h3><button class="btn sm" data-act="gv-hs" data-k="">Đóng</button></div>' +
+    '<div class="kpis"><div class="kpi"><b>' + x.n + '</b><span>lượt chơi (' + x.n7 + ' lượt trong 7 ngày qua)</span></div><div class="kpi"><b>' + x.tried + '/' + LESSONS.length + '</b><span>bài đã luyện</span></div><div class="kpi"><b>' + x.lv + '/' + LESSONS.length * 3 + '</b><span>mức đã đạt (≥70%)</span></div><div class="kpi"><b>' + x.stars + ' ★</b><span>tổng số sao</span></div></div>' +
+    '<h4 class="sub">Lượt chơi theo tuần</h4>' + weekBars(atts, 8) +
+    '<h4 class="sub">Tiến độ theo chủ điểm (số mức đã đạt)</h4><div class="bars">' + THEMES.map(function (t) {
+      var ls = LESSONS.filter(function (L) { return L.tap + '|' + L.chuDiem === t.key; }), n = 0;
+      ls.forEach(function (L) { for (var m = 1; m <= 3; m++) if (bestBy(atts, L.id, m) >= 0.7) n++; });
+      return '<div class="barrow th-row"><span>HK' + (t.tap === 1 ? 'I' : 'II') + ' · ' + esc(t.name) + '</span>' + progBar(n, ls.length * 3, 'wide') + '</div>';
+    }).join('') + '</div>';
+  var recent = atts.slice(-12).reverse();
+  if (recent.length) h += '<h4 class="sub">Các lượt gần nhất</h4><div class="scroll"><table class="mx hs-t"><thead><tr><th>Trạm</th><th>Mức</th><th>Ngày</th><th>Điểm</th><th>Mức đạt</th></tr></thead><tbody>' + recent.map(function (a) {
+    var s = BYID[a.l], p = pct(a), md = mucDat(p);
+    return '<tr><td>' + (s ? 'T' + s.tuan + ' · ' + esc(s.ten) : esc(a.l)) + '</td><td>' + (a.m ? LVN[a.m] : (a.v === 'k' ? 'Kiểm tra nhanh' : 'Ôn luyện')) + '</td><td>' + new Date(a.t).toLocaleDateString('vi-VN') + '</td><td>' + Math.round(p * 100) + '%</td><td><span class="tag' + (md === 'T' ? ' ok' : md === 'C' ? ' warn' : '') + '">' + MUC[md] + '</span></td></tr>';
+  }).join('') + '</tbody></table></div>';
+  return h + '</div>';
+}
+GVACT['gv-hs'] = function (el, k) { G.hs = k || null; render(); if (k) { var d = app.querySelector('.hs-detail'); if (d) d.scrollIntoView({ block: 'start' }); } };
+GVCHANGE['gv-hssort'] = function (el) { G.hsSort = el.value; render(); };
+GVACT['gv-hscsv'] = function () {
+  var R = records(), due = dueLessons(), rows = [['Học sinh', 'Lớp', 'Lượt chơi', 'Lượt 7 ngày qua', 'Bài đạt', 'Bài đến tuần ' + weekNow(), 'Bài đã luyện', 'Mức đã đạt', 'Số sao', 'Điểm TB (%)', 'Lần gần nhất']];
+  students().forEach(function (ma) {
+    var inf = hsInfo(ma) || {}, x = hsStat(R[ma] || [], due);
+    rows.push([who(ma, true), inf.lop || '', x.n, x.n7, x.pass, x.due, x.tried, x.lv, x.stars, x.avg < 0 ? '' : Math.round(x.avg * 100), x.last ? new Date(x.last).toLocaleString('vi-VN') : '']);
+  });
+  if (rows.length < 2) { toast('Chưa có học sinh để tải'); return; }
+  var csv = '﻿' + rows.map(function (r) { return r.map(function (c) { c = String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\r\n');
+  saveFile('tien-do-hoc-sinh.csv', csv, 'text/csv', function () { showCopy('Bảng tiến độ học sinh (dán vào Excel)', csv.slice(1)); });
+};
 
 /* ---------- tab nhập mã ---------- */
 function tabNhap() {

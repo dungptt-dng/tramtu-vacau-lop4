@@ -177,6 +177,13 @@ mark{background:var(--sun-soft);color:inherit;border-radius:4px;padding:0 .2em;f
 .sendcard h3{margin:0;font-family:var(--f-display);font-size:1.25rem;line-height:1.15}
 .sendcard p{margin:0;color:var(--muted);font-size:.92rem;font-weight:700}
 .sendcard .btn{width:100%}
+.syncst{width:100%;display:flex;align-items:center;gap:10px;border-radius:18px;padding:10px 14px;margin:0;text-align:left;font-size:.9rem;font-weight:800;background:var(--ok-soft);color:var(--ok-ink)}
+.syncst svg{width:22px;height:22px;flex:none}
+.syncst.wait{background:var(--surface-2);color:var(--ink-2)}
+.syncst.wait svg{animation:syncp 1.2s ease-in-out infinite}
+.syncst.off{background:var(--sun-soft);color:var(--sun-ink)}
+@keyframes syncp{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.syncst.wait svg{animation:none}}
 
 .journey-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:6px 0 10px}
 .journey-head h2{font-family:var(--f-display);font-size:1.75rem;line-height:1.1;margin:0}
@@ -475,6 +482,38 @@ mark{background:var(--sun-soft);color:inherit;border-radius:4px;padding:0 .2em;f
 .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:18px}
 .tabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;min-height:44px}
 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+/* Thống kê */
+.tk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tk-kpi{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:22px;background:var(--accent-soft);border:2px solid var(--line)}
+.tk-kpi.b{background:var(--hint-soft)}
+.tk-kpi.c{background:var(--sun-soft)}
+.tk-kpi.d{background:var(--ok-soft)}
+.tk-kpi .ic{width:52px;height:52px;border-radius:16px;background:var(--surface);display:grid;place-items:center;font-size:1.7rem;flex:none}
+.tk-kpi b{display:block;font-family:var(--f-display);font-size:2rem;line-height:1.05;color:var(--ink);font-variant-numeric:tabular-nums}
+.tk-kpi span span{font-size:.88rem;font-weight:800;color:var(--ink-2)}
+.box.tk-bar{flex-direction:row;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start;gap:12px}
+.box.tk-bar label{display:flex;flex-direction:column;align-items:stretch;gap:4px;margin:0;font-weight:800;font-size:.88rem;color:var(--ink-2);min-width:160px}
+.box.tk-bar label.grow{flex:1;min-width:200px}
+.box.tk-bar .qact{margin:0;flex-wrap:wrap}
+.tk-sec .hd{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 16px}
+.tk-sec .hd h3{margin-top:6px}
+.eyebrow{display:inline-block;padding:3px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent-deep);font-size:.72rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.eyebrow.pink{background:var(--bad-soft);color:var(--bad-ink)}
+.eyebrow.sun{background:var(--sun-soft);color:var(--sun-ink)}
+.mx.tk-t th,.mx.tk-t td{text-align:left;padding:10px 12px}
+.mx.tk-t th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+.mx.tk-t td.wrap{white-space:normal;min-width:220px}
+.mx.tk-t tr.sel td{background:var(--accent-soft)}
+.tk-t .acc{color:var(--accent)}
+.tk-rank .rk{font-family:var(--f-display);font-size:1.05rem}
+.mx.tk-rank tr.rk1 td{background:var(--sun-pale)}
+.mx.tk-rank tr.rk2 td,.mx.tk-rank tr.rk3 td{background:var(--surface-2)}
+.tk-rank .st{color:var(--star);letter-spacing:1px}
+.tk-rank .st i{font-style:normal;color:var(--star-off)}
+.tk-hist summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center}
+.tk-hist summary::-webkit-details-marker{display:none}
+.tk-hist summary h3::after{content:' ▾';color:var(--muted);font-size:.9rem}
+.tk-hist:not([open]) summary h3::after{content:' ▸'}
 .panel{display:flex;flex-direction:column;gap:16px}
 .box{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .box h3{margin:0;font-family:var(--f-display);font-size:1.25rem}
@@ -4559,7 +4598,8 @@ BANK_PARTS.push(BANK_PART);})();
 BANK_PARTS.push(BANK_PART);})();</script><script id="tc-main">(function () {
 'use strict';
 /* Vương quốc Từ hay – Câu đẹp Lớp 4 — ôn luyện Luyện từ và câu lớp 4 (Kết nối tri thức).
-   Học sinh: không đăng nhập, không dùng AI; kết quả lưu trên máy và gửi cho cô bằng mã.
+   Học sinh: không đăng nhập, không dùng AI; kết quả lưu trên máy và tự gửi lên Firebase.
+   Giáo viên: chỉ xem được số liệu cả lớp sau khi đăng nhập Google (tài khoản trong firestore.rules).
    Giáo viên: góc giáo viên có trợ lý AI (khi mở trong Claude), duyệt rồi mới giao cho lớp. */
 var HEAD = "<title>Vương quốc Từ hay – Câu đẹp Lớp 4<\/title><meta name=\"claude:viewport-fit-sides\" content=\"cover\"><link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&family=Lexend:wght@400;500;600&display=swap\">";
 var SHELL = "<div id=\"app\"><div class=\"wrap\"><p class=\"boot\">Đang mở Vương quốc Từ hay – Câu đẹp Lớp 4…<\/p><\/div><\/div>";
@@ -4669,11 +4709,6 @@ function hsKey(ten, lop) { var r = seeded(normTen(lop).toLocaleLowerCase('vi') +
 function hsInfo(ma) { var r = S.hs[ma]; if (r && r.ten) return r; r = GV && GV.hs[ma]; if (r && r.ten) return r; r = FB && FB.hs[ma]; return r && r.ten ? r : null; }
 function who(ma, noLop) { var r = hsInfo(ma); return r ? r.ten + (r.lop && !noLop ? ' · ' + r.lop : '') : 'Số ' + ma; }
 function byWho(a, b) { return who(a).localeCompare(who(b), 'vi', { numeric: true }); }
-function packHs(mas) {
-  var o = { v: 1, h: {}, n: {} };
-  mas.forEach(function (m) { o.h[m] = attemptsOf(m); var r = S.hs[m]; if (r && r.ten) o.n[m] = { ten: r.ten, lop: r.lop }; });
-  return o;
-}
 function unlocked(sid, m) {
   if (m === 1 || DATA.cfg.moKhoa) return true;
   return bestPct(attemptsOf(S.cur), sid, m - 1) >= 0.7;
@@ -4829,10 +4864,9 @@ function render() {
   music(v === 'pick' || v === 'home');
   if (v === 'pick') { app.innerHTML = viewPick(); return; }
   var html = v === 'home' ? viewHome() : v === 'lesson' ? viewLesson() : v === 'quiz' ? viewQuiz()
-    : v === 'result' ? viewResult() : v === 'send' ? viewSend() : v === 'gvlock' ? viewLock() : v === 'gv' ? viewGV() : viewHome();
+    : v === 'result' ? viewResult() : v === 'gvlock' ? viewLock() : v === 'gv' ? viewGV() : viewHome();
   /* Lúc làm bài chỉ giữ thanh tiến độ cho em tập trung */
   app.innerHTML = '<div class="wrap">' + (v === 'quiz' && Q ? html : topBar(v) + html + footer(v)) + '</div>';
-  if (v === 'send') fillSendCode();
   if (v === 'gv') afterGV();
   if (v === 'quiz' && Q && Q.focus) { var f = app.querySelector(Q.focus); if (f) f.focus(); Q.focus = null; }
 }
@@ -4883,12 +4917,12 @@ function viewPick() {
     '<div class="sp-lvls">' + [1, 2, 3].map(function (m) { return spHot('sp-l' + m, 'sp-lv', m, 'Chặng ' + LVN[m]); }).join('') + '</div>' +
     spPanel('guide', 'Hướng dẫn', '<ol><li>Em nhập họ và tên, lớp của em rồi bấm <b>Bắt đầu</b>.</li><li>Mỗi tuần em vào trạm của bài đang học.</li>' +
       '<li>Mỗi trạm có ba chặng: <b>Khởi động</b>, <b>Tăng tốc</b>, <b>Chinh phục</b>. Em đạt từ 70% ở chặng trước thì mở được chặng sau.</li>' +
-      '<li>Làm xong, em bấm “Gửi kết quả cho cô”.</li></ol>') +
+      '<li>Làm xong, kết quả tự gửi đến cô, em không cần gửi mã.</li></ol>') +
     spPanel('set', 'Cài đặt', '<div class="sp-row"><span>Âm thanh</span><span class="sp"></span><button class="btn sm" data-act="sp-sound" aria-pressed="' + SND + '">' + (SND ? 'Đang bật' : 'Đang tắt') + '</button></div>' +
       '<div class="sp-row"><span>Nhạc nền</span><span class="sp"></span><button class="btn sm" data-act="sp-music" aria-pressed="' + BGM + '">' + (BGM ? 'Đang bật' : 'Đang tắt') + '</button></div>' +
       '<div class="sp-row"><span>Dành cho thầy cô</span><span class="sp"></span><button class="btn sm" data-act="gv-open">Góc giáo viên</button></div>') +
     spPanel('info', 'Thông tin', '<p>Ôn luyện Luyện từ và câu – Tiếng Việt 4.</p><p>Giáo viên: <b>Phạm Thị Thùy Dung</b><br>Trường Tiểu học Huỳnh Ngọc Huệ<br>Phường Thanh Khê, thành phố Đà Nẵng</p>' +
-      '<p>Kết quả của em được lưu trên máy này.</p>') +
+      '<p>Kết quả của em được lưu trên máy này và tự gửi đến cô khi có mạng.</p>') +
     '</section></div>';
 }
 /* Tên đã nhập trên máy này: gợi ý ngay trong ô họ tên; chọn tên thì tự điền lớp. */
@@ -4938,7 +4972,7 @@ function viewHome() {
     '<div><i class="s">' + ICON.star + '</i><b>' + starsTotal + '</b><span>ngôi sao</span></div>' +
     '<div><i class="v">' + ICON.pin + '</i><b>' + Object.keys(done).length + '</b><span>trạm đã ghé</span></div>' +
     '<div><i class="l">' + ICON.run + '</i><b>' + atts.length + '</b><span>lượt luyện</span></div></div>' +
-    '<div class="sendcard"><h3>Gửi kết quả cho cô</h3><p>Học xong, em bấm nút này để cô xem bài của em nhé.</p><button class="btn ok" data-act="send">' + ICON.send + 'Gửi kết quả cho cô</button></div></div></section>';
+    '<div class="sendcard"><h3>Kết quả gửi cô</h3>' + syncNote(S.cur) + '</div></div></section>';
   var tap = V.tap || cur.tap || 1;
   h += '<div class="journey-head"><h2>Hành trình học tập</h2><div class="seg" role="group" aria-label="Chọn học kì">' + [1, 2].map(function (t) {
     return '<button data-act="tap" data-k="' + t + '" aria-pressed="' + (t === tap) + '">Học kì ' + (t === 1 ? 'I' : 'II') + '</button>';
@@ -5308,41 +5342,8 @@ function viewResult() {
       }).join('') + '</div>';
     }
   }
-  h += '<p class="remind">' + ICON.send + 'Nhớ bấm “Gửi kết quả cho cô” ở trang chính khi học xong nhé.</p></section>';
+  h += syncNote(S.cur) + '</section>';
   return h;
-}
-
-/* ---------- mã kết quả ---------- */
-function b64u(bytes) { var s = ''; for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-function unb64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-function encode(obj) {
-  var bytes = new TextEncoder().encode(JSON.stringify(obj));
-  if (window.CompressionStream) {
-    try {
-      var cs = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-      return new Response(cs).arrayBuffer().then(function (buf) { return 'TC4Z' + b64u(new Uint8Array(buf)); }, function () { return 'TC4J' + b64u(bytes); });
-    } catch (e) { }
-  }
-  return Promise.resolve('TC4J' + b64u(bytes));
-}
-function decode(code) {
-  var kind = code.slice(0, 4), body = unb64u(code.slice(4));
-  if (kind === 'TC4J') return Promise.resolve(JSON.parse(new TextDecoder().decode(body)));
-  if (!window.DecompressionStream) return Promise.reject(new Error('Trình duyệt này chưa đọc được mã nén. Cô thử mở bằng Chrome mới.'));
-  var ds = new Blob([body]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  return new Response(ds).text().then(function (t) { return JSON.parse(t); });
-}
-function viewSend() {
-  var atts = attemptsOf(S.cur);
-  return '<p class="back"><button class="btn pill" data-act="home">' + ICON.back + 'Hành trình</button></p><section class="send"><h2>Gửi kết quả cho cô</h2>' +
-    (atts.length ? '<p>Đây là mã kết quả của <b>' + esc(who(S.cur)) + '</b> (' + atts.length + ' lượt luyện). Mã gồm họ tên, lớp và kết quả bài làm của em.</p>' +
-      '<ol class="steps"><li>Bấm <b>Sao chép mã</b>.</li><li>Nhờ bố mẹ dán mã vào tin nhắn Zalo gửi cô chủ nhiệm.</li><li>Ở lớp, cô có thể tự lấy mã trên máy tính bảng.</li></ol>' +
-      '<label class="small muted" for="sendcode">Mã kết quả</label><textarea id="sendcode" class="code" readonly>Đang tạo mã…</textarea><div class="qact"><button class="btn ok big" data-act="copy-code">Sao chép mã</button></div>'
-      : '<p>Em chưa có lượt luyện nào trên máy này. Em vào một trạm để luyện trước nhé!</p>') + '</section>';
-}
-function fillSendCode() {
-  var ta = document.getElementById('sendcode'); if (!ta) return;
-  encode(packHs([S.cur])).then(function (c) { ta.value = c; });
 }
 
 /* ---------- xử lý chạm ---------- */
@@ -5366,8 +5367,6 @@ app.addEventListener('click', function (ev) {
     case 'open': go('lesson', { sid: k }); break;
     case 'start': startQuiz(V.sid, k); break;
     case 'start-lv': startQuiz(V.att.l, k); break;
-    case 'send': go('send'); break;
-    case 'copy-code': var ta = document.getElementById('sendcode'); copyText(ta.value, ta); break;
     case 'quit': if (!V.sure && Q.items.some(function (x) { return x.done; })) { V.sure = true; toast('Chạm “Dừng” lần nữa để thoát. Bài đang làm sẽ không được lưu.'); return; } go('lesson', { sid: Q.sid }); break;
     case 'hint': it.hint = true; render(); break;
     case 'opt':
@@ -5484,7 +5483,7 @@ app.addEventListener('change', function (ev) { if (ev.target.id === 'hs-ten') fi
    GÓC GIÁO VIÊN
    ===================================================================== */
 var GV = { hs: {} }, DB = null, UID = null, GVREADY = false, PEND = null, DRAFTS = [], AIBUSY = null;
-var G = { tab: 'kq', range: null, lesson: null, aiLesson: null, aiLv: 1, aiN: 5, aiTypes: { mc: 1, pick: 1, sort: 1, ai: 1 }, aiNote: '', nxLesson: null, nxOut: null, planOut: '', dkOut: null, bankLesson: null, confirm: null, imp: '' };
+var G = { tab: 'tk', fLop: '', fQ: '', bxh: null, hLim: 50, range: null, lesson: null, aiLesson: null, aiLv: 1, aiN: 5, aiTypes: { mc: 1, pick: 1, sort: 1, ai: 1 }, aiNote: '', nxLesson: null, nxOut: null, planOut: '', dkOut: null, bankLesson: null, confirm: null };
 var GVACT = {}, GVCHANGE = {};
 function openGV() {
   var ok = SS.get('tc4.gvok');
@@ -5534,32 +5533,185 @@ function gvSave(mas) {
   return mas.reduce(function (p, ma) { return p.then(function () { return col.doc('hs-' + ma).set(GV.hs[ma]); }); }, Promise.resolve())
     .catch(function (e) { toast('Chưa lưu được vào tài khoản (' + (e && e.code || 'lỗi') + '). Dữ liệu tạm giữ trên máy này.'); LS.set('tc4.gv', GV); });
 }
-/* gộp dữ liệu: máy này + đã nhập + Firebase */
+/* Số liệu cả lớp: chỉ lấy từ Firebase, và chỉ khi cô đã đăng nhập Google (luật Firestore chỉ cho Gmail giáo viên đọc) */
 function records() {
-  var out = {}, seen = {};
-  function add(ma, a) { var key = ma + ':' + a.i; if (seen[key]) return; seen[key] = 1; (out[ma] = out[ma] || []).push(a); }
-  Object.keys(GV.hs).forEach(function (ma) { (GV.hs[ma].a || []).forEach(function (a) { add(ma, a); }); });
-  Object.keys(S.hs).forEach(function (ma) { (S.hs[ma].a || []).forEach(function (a) { add(ma, a); }); });
-  Object.keys(FB.hs).forEach(function (ma) { FB.hs[ma].a.forEach(function (a) { add(ma, a); }); });
+  var out = {};
+  if (!FB.teacher) return out;
+  Object.keys(FB.hs).forEach(function (ma) { out[ma] = FB.hs[ma].a.slice(); });
   Object.keys(out).forEach(function (ma) { out[ma].sort(function (x, y) { return x.t - y.t; }); });
   return out;
 }
-function students() { var a = Object.keys(records()); Object.keys(S.hs).forEach(function (m) { if (S.hs[m].ten && a.indexOf(m) < 0) a.push(m); }); return a.sort(byWho); }
+function students() { return Object.keys(records()).sort(byWho); }
+/* Chưa đăng nhập Google thì không mở số liệu */
+function needGoogle(what) {
+  return '<div class="box gate"><h3>Đăng nhập Google để xem ' + what + '</h3><p class="muted">Số liệu của học sinh được lưu trên máy chủ Firebase. Chỉ tài khoản Google của giáo viên mới mở được.</p>' +
+    (FB.on ? '<div class="qact"><button class="btn pri" data-act="fb-in">Đăng nhập Google</button></div>' : '<p class="small muted">' + esc(FB.err || 'Đang kết nối Firebase…') + '</p>') + '</div>';
+}
 var THEMES = (function () { var t = [], seen = {}; LESSONS.forEach(function (L) { var k = L.tap + '|' + L.chuDiem; if (!seen[k]) { seen[k] = 1; t.push({ key: k, tap: L.tap, name: L.chuDiem }); } }); return t; })();
 function themeOf(sid) { var s = BYID[sid]; return s && !s.rev ? s.tap + '|' + s.chuDiem : null; }
 
 function viewGV() {
-  var tabs = [['kq', 'Kết quả lớp'], ['hs', 'Học sinh'], ['nhap', 'Nhập mã'], ['ai', 'Trợ lý AI'], ['cauhoi', 'Câu hỏi'], ['caidat', 'Cài đặt']];
-  var note = !GVREADY ? 'Đang mở dữ liệu lớp…' : DB ? 'Kết quả đã nhập được lưu trong tài khoản Claude của cô, mở trên máy nào cũng thấy.' : 'Kết quả đã nhập chỉ lưu trên trình duyệt của máy này. Mở app trong Claude (đã đăng nhập) để lưu vào tài khoản.';
-  var h = '<div class="gv-head"><h2>Góc giáo viên</h2><button class="btn sm" data-act="gv-lockout">Khoá lại</button></div>' + fbNote() + (FB.teacher ? '' : '<p class="store-note">' + note + '</p>') + '<nav class="tabs" role="tablist">' +
+  var tabs = [['tk', 'Thống kê'], ['kq', 'Kết quả lớp'], ['hs', 'Học sinh'], ['ai', 'Trợ lý AI'], ['cauhoi', 'Câu hỏi'], ['caidat', 'Cài đặt']];
+  if (G.tab === 'nhap') G.tab = 'kq';
+  var h = '<div class="gv-head"><h2>Góc giáo viên</h2><button class="btn sm" data-act="gv-lockout">Khoá lại</button></div>' + fbNote() + '<nav class="tabs" role="tablist">' +
     tabs.map(function (t) { return '<button role="tab" aria-selected="' + (G.tab === t[0]) + '" class="' + (G.tab === t[0] ? 'on' : '') + '" data-act="gv-tab" data-k="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</nav>';
-  h += '<section class="panel">' + (G.tab === 'kq' ? tabKQ() : G.tab === 'hs' ? tabHS() : G.tab === 'nhap' ? tabNhap() : G.tab === 'ai' ? tabAI() : G.tab === 'cauhoi' ? tabBank() : tabSet()) + '</section>';
+  h += '<section class="panel">' + copyBox() + (G.tab === 'tk' ? (FB.teacher ? tabTK() : needGoogle('thống kê cả lớp')) : G.tab === 'kq' ? (FB.teacher ? tabKQ() : needGoogle('kết quả cả lớp')) : G.tab === 'hs' ? (FB.teacher ? tabHS() : needGoogle('tiến độ học sinh')) : G.tab === 'ai' ? tabAI() : G.tab === 'cauhoi' ? tabBank() : tabSet()) + '</section>';
   h += pendBar();
   return h;
 }
 function afterGV() { }
 GVACT['gv-tab'] = function (el, k) { G.tab = k; G.confirm = null; render(); };
 GVACT['gv-lockout'] = function () { SS.del('tc4.gvok'); go('home'); };
+
+/* ---------- tab thống kê: tổng quan theo lớp, danh sách học sinh, bảng xếp hạng sao, lịch sử ---------- */
+function normLop(l) { l = normTen(l).toLocaleUpperCase('vi').replace(/^LỚP\s*/, ''); return l.replace(/^(\d+)\s*[-._\\\s]\s*(\d+)$/, '$1/$2') || '–'; }
+function lopOf(ma) { var r = hsInfo(ma); return normLop(r && r.lop); }
+function khongDau(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
+function fullTime(t) { var d = new Date(t), p = function (n) { return (n < 10 ? '0' : '') + n; }; return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(); }
+function lvName(a) { return a.m ? LVN[a.m] : (a.v === 'k' ? 'Kiểm tra nhanh' : 'Ôn luyện'); }
+function stName(sid) { var s = BYID[sid]; return s ? (s.rev ? s.ten : 'Tuần ' + s.tuan + ' · ' + s.ten) : sid; }
+function avgPct(atts) { return atts.length ? atts.reduce(function (x, a) { return x + pct(a); }, 0) / atts.length : -1; }
+function pctTxt(p) { return p < 0 ? '–' : Math.round(p * 100) + '%'; }
+/* Một bài tính là hoàn thành khi em đạt từ 70% (2 sao) ở mức Khởi động — giống tab Học sinh */
+function doneCount(atts) { return LESSONS.filter(function (L) { return bestBy(atts, L.id, 1) >= 0.7; }).length; }
+/* Tổng sao tốt nhất của các mức trong các bài ids; t = lúc em đạt tới tổng sao đó (để xếp khi bằng sao) */
+function starRun(atts, ids) {
+  var best = {}, tot = 0, at = 0;
+  atts.forEach(function (a) {
+    if (!a.m || !ids[a.l]) return;
+    var k = a.l + ':' + a.m, s = starsFor(pct(a)), o = best[k] || 0;
+    if (s > o) { best[k] = s; tot += s - o; at = a.t; }
+  });
+  return { stars: tot, t: at, best: best };
+}
+function lessonsWithStars(best) { var o = {}; Object.keys(best).forEach(function (k) { o[k.split(':')[0]] = 1; }); return Object.keys(o).length; }
+function tkList(R) {
+  var q = khongDau(normTen(G.fQ || ''));
+  return Object.keys(R).filter(function (ma) {
+    if (G.fLop && lopOf(ma) !== G.fLop) return false;
+    return !q || khongDau(who(ma, true)).indexOf(q) >= 0;
+  });
+}
+function tkLops(R) { var o = {}; Object.keys(R).forEach(function (ma) { o[lopOf(ma)] = 1; }); return Object.keys(o).sort(function (a, b) { return a.localeCompare(b, 'vi', { numeric: true }); }); }
+function tabTK() {
+  var R = records(), lops = tkLops(R);
+  if (G.fLop && lops.indexOf(G.fLop) < 0) G.fLop = '';
+  var list = tkList(R), all = [];
+  list.forEach(function (ma) { all = all.concat(R[ma]); });
+  var kp = function (cls, ic, v, lab) { return '<div class="tk-kpi ' + cls + '"><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + v + '</b><span>' + lab + '</span></span></div>'; };
+  var h = '<div class="tk-kpis">' + kp('a', '🧒', list.length, 'Học sinh đã tham gia') + kp('b', '🏫', (G.fLop ? 1 : lops.length), 'Lớp đang có dữ liệu') + kp('c', '🧩', all.length, 'Lượt học đã ghi nhận') + kp('d', '🎯', pctTxt(avgPct(all)), 'Tỉ lệ đúng trung bình') + '</div>';
+  h += '<div class="box tk-bar"><label>🏫 Lớp<select id="tk-lop" class="field"><option value="">Tất cả lớp</option>' + lops.map(function (l) { return '<option value="' + esc(l) + '"' + (l === G.fLop ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select></label>' +
+    '<label class="grow">🔎 Tìm học sinh<input id="tk-q" class="field" type="search" autocomplete="off" placeholder="Nhập họ tên học sinh…" value="' + esc(G.fQ || '') + '"></label>' +
+    '<div class="qact"><button class="btn pri" data-act="tk-refresh">Làm mới</button><button class="btn ok" data-act="tk-csv">Tải báo cáo lớp</button><button class="btn" data-act="tk-hcsv">Tải lịch sử</button></div></div>';
+  if (!Object.keys(R).length) return h + '<p class="muted">Chưa có kết quả. Học sinh làm xong ở bất kì máy nào, kết quả tự gửi lên Firebase và hiện ngay ở đây.</p>';
+  h += tkLopTable(R) + tkHsTable(R, list) + tkRank(R) + tkHistory(R, list);
+  return h;
+}
+function tkHead(tag, cls, title, note) { return '<div class="hd"><div><span class="eyebrow ' + cls + '">' + tag + '</span><h3>' + title + '</h3></div><p class="small muted">' + note + '</p></div>'; }
+function tkLopTable(R) {
+  var by = {};
+  Object.keys(R).forEach(function (ma) { var l = lopOf(ma); (by[l] = by[l] || []).push(ma); });
+  var N = LESSONS.length;
+  return '<div class="box tk-sec">' + tkHead('Tổng quan', '', 'Tiến độ theo lớp', 'So sánh nhanh mức độ tham gia và kết quả học tập giữa các lớp.') +
+    '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Lớp</th><th>Học sinh</th><th>Lượt học</th><th>Đúng TB</th><th>Bài hoàn thành TB</th></tr></thead><tbody>' +
+    tkLops(R).map(function (l) {
+      var ms = by[l], atts = [], d = 0;
+      ms.forEach(function (ma) { atts = atts.concat(R[ma]); d += doneCount(R[ma]); });
+      return '<tr' + (l === G.fLop ? ' class="sel"' : '') + '><td><button class="lnk" data-act="tk-lop" data-k="' + esc(l) + '">' + esc(l) + '</button></td><td>' + ms.length + '</td><td>' + atts.length + '</td><td>' + pctTxt(avgPct(atts)) + '</td><td>' + (Math.round(d / ms.length * 10) / 10).toLocaleString('vi-VN') + '/' + N + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+}
+function tkHsRows(R, list) {
+  return list.map(function (ma) {
+    var atts = R[ma], last = atts[atts.length - 1], d = doneCount(atts);
+    return { ma: ma, ten: who(ma, true), lop: lopOf(ma), done: d, n: atts.length, avg: avgPct(atts), stars: starRun(atts, BYID).stars, last: last };
+  }).sort(function (a, b) { return a.lop.localeCompare(b.lop, 'vi', { numeric: true }) || a.ten.localeCompare(b.ten, 'vi'); });
+}
+function tkHsTable(R, list) {
+  var N = LESSONS.length;
+  var h = '<div class="box tk-sec">' + tkHead('Học sinh', 'pink', 'Danh sách &amp; tiến độ', 'Danh sách tự hình thành khi học sinh nhập họ tên, lớp và làm bài.');
+  if (!list.length) return h + '<p class="muted">Không có học sinh nào khớp bộ lọc.</p></div>';
+  return h + '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Học sinh</th><th>Lớp</th><th>Hoàn thành</th><th>Lượt học</th><th>Đúng TB</th><th>Sao</th><th>Bài gần nhất</th><th>Cập nhật</th></tr></thead><tbody>' +
+    tkHsRows(R, list).map(function (x) {
+      return '<tr><td><button class="lnk" data-act="tk-hs" data-k="' + esc(x.ma) + '">' + esc(x.ten) + '</button></td><td>' + esc(x.lop) + '</td><td><b class="acc">' + x.done + '/' + N + '</b> · ' + Math.round(x.done / N * 100) + '%</td><td>' + x.n + '</td><td>' + pctTxt(x.avg) + '</td><td>' + x.stars + ' ★</td><td class="wrap">' + esc(stName(x.last.l)) + ' <span class="muted">(' + lvName(x.last) + ')</span></td><td>' + fullTime(x.last.t) + '</td></tr>';
+    }).join('') + '</tbody></table></div><p class="small muted">Một bài tính là hoàn thành khi em đạt từ 70% (2 sao) ở mức Khởi động. Chạm vào tên em để xem chi tiết.</p></div>';
+}
+function tkRankRows(R, sid) {
+  var ids = {}; if (sid) ids[sid] = 1; else LESSONS.forEach(function (L) { ids[L.id] = 1; });
+  return Object.keys(R).filter(function (ma) { return !G.fLop || lopOf(ma) === G.fLop; }).map(function (ma) {
+    var r = starRun(R[ma], ids); r.ma = ma; r.ten = who(ma, true); r.lop = lopOf(ma); return r;
+  }).filter(function (r) { return r.stars > 0; }).sort(function (a, b) { return b.stars - a.stars || a.t - b.t || a.ten.localeCompare(b.ten, 'vi'); });
+}
+function tkRank(R) {
+  if (G.bxh == null) { var cur = currentStation(), ls = LESSONS.filter(function (L) { return L.tuan <= cur.tuan; }); G.bxh = (ls[ls.length - 1] || LESSONS[0]).id; }
+  var sid = G.bxh, rows = tkRankRows(R, sid), max = sid ? 9 : LESSONS.length * 9;
+  var h = '<div class="box tk-sec">' + tkHead('Xếp hạng', 'sun', 'Bảng xếp hạng số sao', 'Xếp theo tổng số sao từ cao đến thấp. Bằng sao nhau thì em đạt số sao đó sớm hơn được xếp trên.') +
+    '<div class="form"><label class="grow">Bài<select id="tk-bxh" class="field"><option value="">Tất cả các bài (tổng sao cả năm)</option>' + stationOptions(sid, false) + '</select></label>' + (G.fLop ? '<span class="tag">Lớp ' + esc(G.fLop) + '</span>' : '') + '</div>';
+  if (!rows.length) return h + '<p class="muted">Chưa có em nào đạt sao ở ' + (sid ? 'bài này' : 'các bài') + '.</p></div>';
+  var medal = ['🥇', '🥈', '🥉'];
+  return h + '<div class="scroll"><table class="mx tk-t tk-rank"><thead><tr><th>Hạng</th><th>Học sinh</th><th>Lớp</th>' + (sid ? '<th>Khởi động</th><th>Tăng tốc</th><th>Chinh phục</th>' : '<th>Số bài có sao</th>') + '<th>Tổng sao</th><th>Đạt lúc</th></tr></thead><tbody>' +
+    rows.map(function (r, i) {
+      var mid = sid ? [1, 2, 3].map(function (m) { var s = r.best[sid + ':' + m] || 0; return '<td><span class="st" aria-label="' + s + ' sao">' + '★★★'.slice(0, s) + '<i>' + '★★★'.slice(s) + '</i></span></td>'; }).join('')
+        : '<td>' + lessonsWithStars(r.best) + '</td>';
+      return '<tr' + (i < 3 ? ' class="rk' + (i + 1) + '"' : '') + '><td class="rk">' + (i < 3 ? '<span aria-hidden="true">' + medal[i] + '</span> ' : '') + (i + 1) + '</td><td>' + esc(r.ten) + '</td><td>' + esc(r.lop) + '</td>' + mid + '<td><b>' + r.stars + '</b>/' + max + ' ★</td><td>' + fullTime(r.t) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+}
+function tkHistRows(R, list) {
+  var out = [];
+  list.forEach(function (ma) { R[ma].forEach(function (a) { out.push({ ma: ma, a: a }); }); });
+  return out.sort(function (x, y) { return y.a.t - x.a.t; });
+}
+function needTxt(a) {
+  var ids = a.x || []; if (!ids.length) return '';
+  var f = findQ(ids[0]), p = f ? plain(f.q.p) : '';
+  return ids.length + ' câu sai' + (p ? ' · ' + (p.length > 60 ? p.slice(0, 58) + '…' : p) : '');
+}
+function tkHistory(R, list) {
+  var rows = tkHistRows(R, list), lim = G.hLim || 50;
+  var h = '<details class="box tk-sec tk-hist"' + (G.hClosed ? '' : ' open') + '><summary><h3>🕘 Lịch sử học chi tiết <span class="small muted">(' + rows.length + ' lượt)</span></h3></summary>';
+  if (!rows.length) return h + '<p class="muted">Chưa có lượt học nào.</p></details>';
+  h += '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Thời gian</th><th>Học sinh</th><th>Lớp</th><th>Bài</th><th>Điểm</th><th>Đúng/Sai</th><th>Cần luyện</th></tr></thead><tbody>' +
+    rows.slice(0, lim).map(function (r) {
+      var a = r.a, sai = (a.x || []).length, nd = needTxt(a);
+      return '<tr><td>' + fullTime(a.t) + '</td><td><b>' + esc(who(r.ma, true)) + '</b></td><td>' + esc(lopOf(r.ma)) + '</td><td class="wrap">' + esc(stName(a.l)) + ' <span class="muted">(' + lvName(a) + ')</span></td><td>' + Math.round(pct(a) * 100) + '/100</td><td>' + (a.n - sai) + '/' + sai + '</td><td class="wrap">' + (nd ? esc(nd) : '—') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    (rows.length > lim ? '<div class="qact"><button class="btn" data-act="tk-more">Xem thêm (' + Math.min(50, rows.length - lim) + ' lượt)</button></div>' : '');
+  return h + '</details>';
+}
+function csvOf(rows) { return '﻿' + rows.map(function (r) { return r.map(function (c) { c = String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\r\n'); }
+function tkFileTag() { return G.fLop ? '-lop-' + G.fLop.replace(/[^\w-]+/g, '-') : ''; }
+GVCHANGE['tk-lop'] = function (el) { G.fLop = el.value; G.hLim = 50; render(); };
+GVCHANGE['tk-bxh'] = function (el) { G.bxh = el.value; render(); };
+GVACT['tk-lop'] = function (el, k) { G.fLop = G.fLop === k ? '' : k; G.hLim = 50; render(); };
+GVACT['tk-hs'] = function (el, k) { G.tab = 'hs'; G.hs = k; render(); var d = app.querySelector('.hs-detail'); if (d) d.scrollIntoView({ block: 'start' }); };
+GVACT['tk-more'] = function () { G.hLim = (G.hLim || 50) + 50; keepFocus(render); };
+GVACT['tk-refresh'] = function () { if (FB.teacher) { fbStop(); fbListen(); } render(); toast('Đã tải lại số liệu mới nhất'); };
+GVACT['tk-csv'] = function () {
+  var R = records(), N = LESSONS.length, rows = [['Học sinh', 'Lớp', 'Bài hoàn thành', 'Tổng số bài', 'Hoàn thành (%)', 'Lượt học', 'Đúng TB (%)', 'Tổng sao', 'Bài gần nhất', 'Cập nhật']];
+  tkHsRows(R, tkList(R)).forEach(function (x) { rows.push([x.ten, x.lop, x.done, N, Math.round(x.done / N * 100), x.n, x.avg < 0 ? '' : Math.round(x.avg * 100), x.stars, stName(x.last.l) + ' (' + lvName(x.last) + ')', fullTime(x.last.t)]); });
+  if (rows.length < 2) { toast('Chưa có học sinh để tải'); return; }
+  var csv = csvOf(rows);
+  saveFile('bao-cao-lop' + tkFileTag() + '.csv', csv, 'text/csv', function () { showCopy('Báo cáo lớp (dán vào Excel)', csv.slice(1)); });
+};
+GVACT['tk-hcsv'] = function () {
+  var R = records(), rows = [['Thời gian', 'Học sinh', 'Lớp', 'Bài', 'Mức', 'Điểm (/100)', 'Số câu đúng', 'Số câu sai', 'Cần luyện']];
+  tkHistRows(R, tkList(R)).forEach(function (r) { var a = r.a, sai = (a.x || []).length; rows.push([fullTime(a.t), who(r.ma, true), lopOf(r.ma), stName(a.l), lvName(a), Math.round(pct(a) * 100), a.n - sai, sai, needTxt(a)]); });
+  if (rows.length < 2) { toast('Chưa có lượt học để tải'); return; }
+  var csv = csvOf(rows);
+  saveFile('lich-su-hoc' + tkFileTag() + '.csv', csv, 'text/csv', function () { showCopy('Lịch sử học (dán vào Excel)', csv.slice(1)); });
+};
+/* Vẽ lại mà không làm mất chỗ con trỏ trong ô tìm kiếm */
+function keepFocus(fn) {
+  var a = document.activeElement, id = a && a.id, s = null;
+  try { s = a.selectionStart; } catch (e) { }
+  fn();
+  if (id) { var e = document.getElementById(id); if (e && e !== document.activeElement) { e.focus(); try { if (s != null) e.setSelectionRange(s, s); } catch (x) { } } }
+}
+app.addEventListener('input', function (ev) {
+  if (ev.target.id !== 'tk-q') return;
+  G.fQ = ev.target.value; clearTimeout(G.qT);
+  G.qT = setTimeout(function () { G.hLim = 50; keepFocus(render); }, 250);
+});
+app.addEventListener('toggle', function (ev) { if (ev.target.classList && ev.target.classList.contains('tk-hist')) G.hClosed = !ev.target.open; }, true);
 
 /* ---------- tab kết quả ---------- */
 function bestBy(atts, sid, m) { var b = -1; atts.forEach(function (a) { if (a.l === sid && a.m === m) b = Math.max(b, pct(a)); }); return b; }
@@ -5575,7 +5727,7 @@ function tabKQ() {
   var h = '<div class="box"><div class="form"><label>Chủ điểm<select id="gv-range" class="field">' + THEMES.map(function (t) { return '<option value="' + esc(t.key) + '"' + (t.key === G.range ? ' selected' : '') + '>HK' + (t.tap === 1 ? 'I' : 'II') + ' · ' + esc(t.name) + '</option>'; }).join('') + '</select></label>' +
     '<span class="sp" style="flex:1"></span><button class="btn sm" data-act="gv-csv">Tải bảng kết quả (CSV)</button></div>' +
     '<div class="kpis"><div class="kpi"><b>' + active.length + '/' + (DATA.cfg.siSo || 35) + '</b><span>em đã luyện ở chủ điểm này</span></div><div class="kpi"><b>' + tot + '</b><span>lượt luyện</span></div><div class="kpi"><b>' + (tot ? Math.round(good / tot * 100) + '%' : '–') + '</b><span>lượt đạt Hoàn thành tốt (≥80%)</span></div></div>';
-  if (!Object.keys(R).length) h += '<p class="muted">Chưa có kết quả. Học sinh luyện trên máy này sẽ hiện ngay ở đây; kết quả từ máy khác, cô dán vào tab “Nhập mã”.</p>';
+  if (!Object.keys(R).length) h += '<p class="muted">Chưa có kết quả. Học sinh làm xong ở bất kì máy nào, kết quả tự gửi lên Firebase và hiện ngay ở đây.</p>';
   h += '<div class="scroll"><table class="mx"><thead><tr><th>Học sinh</th>' + ls.map(function (L) { return '<th class="l" title="' + esc(L.ten) + '">T' + L.tuan + ' · ' + esc(L.ten) + '</th>'; }).join('') + '</tr></thead><tbody>' +
     list.map(function (ma) {
       var atts = R[ma] || [];
@@ -5661,7 +5813,10 @@ function saveFile(name, data, mime, fallback) {
     fallback();
   });
 }
-function showCopy(title, text, note) { G.copy = { title: title, text: text, note: note || 'Không tải được file ở đây. Cô sao chép nội dung dưới đây rồi dán vào Excel hoặc Google Trang tính.' }; G.tab = 'nhap'; render(); }
+function showCopy(title, text, note) { G.copy = { title: title, text: text, note: note || 'Không tải được file ở đây. Cô sao chép nội dung dưới đây rồi dán vào Excel hoặc Google Trang tính.' }; render(); }
+function copyBox() {
+  return G.copy ? '<div class="box"><h3>' + esc(G.copy.title) + '</h3><p class="small muted">' + esc(G.copy.note) + '</p><textarea id="copyarea" class="code" readonly>' + esc(G.copy.text) + '</textarea><div class="qact"><button class="btn pri" data-act="gv-copyarea">Sao chép</button><button class="btn ghost" data-act="gv-closecopy">Đóng</button></div></div>' : '';
+}
 
 /* ---------- tab học sinh: lượt chơi và tiến độ từng em ---------- */
 var WEEK1 = new Date(2026, 8, 7).getTime();
@@ -5709,7 +5864,7 @@ function tabHS() {
   if (G.hs && X[G.hs]) h += hsDetail(G.hs, R[G.hs] || [], X[G.hs]);
   h += '<div class="box"><div class="form"><label>Sắp xếp<select id="gv-hssort" class="field">' + [['ten', 'Theo tên'], ['luot', 'Nhiều lượt chơi nhất'], ['tiendo', 'Tiến độ cao nhất'], ['gannhat', 'Luyện gần đây nhất']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === sort ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
     '<span class="sp" style="flex:1"></span><button class="btn sm" data-act="gv-hscsv">Tải bảng tiến độ (CSV)</button></div>';
-  if (!list.length) return h + '<p class="muted">Chưa có học sinh nào. Học sinh luyện trên máy này sẽ hiện ngay ở đây; kết quả từ máy khác, cô dán vào tab “Nhập mã”.</p></div>';
+  if (!list.length) return h + '<p class="muted">Chưa có học sinh nào. Học sinh làm xong ở bất kì máy nào, kết quả tự gửi lên Firebase và hiện ngay ở đây.</p></div>';
   h += '<div class="scroll"><table class="mx hs-t"><thead><tr><th>Học sinh</th><th>Lượt chơi</th><th>7 ngày qua</th><th>Tiến độ (bài đạt / bài đến tuần ' + weekNow() + ')</th><th>Sao</th><th>Điểm TB</th><th>Lần gần nhất</th><th>Tình trạng</th></tr></thead><tbody>' +
     rows.map(function (ma) {
       var x = X[ma];
@@ -5746,44 +5901,8 @@ GVACT['gv-hscsv'] = function () {
   saveFile('tien-do-hoc-sinh.csv', csv, 'text/csv', function () { showCopy('Bảng tiến độ học sinh (dán vào Excel)', csv.slice(1)); });
 };
 
-/* ---------- tab nhập mã ---------- */
-function tabNhap() {
-  var h = '';
-  if (G.copy) h += '<div class="box"><h3>' + esc(G.copy.title) + '</h3><p class="small muted">' + esc(G.copy.note) + '</p><textarea id="copyarea" class="code" readonly>' + esc(G.copy.text) + '</textarea><div class="qact"><button class="btn pri" data-act="gv-copyarea">Sao chép</button><button class="btn ghost" data-act="gv-closecopy">Đóng</button></div></div>';
-  h += '<div class="box"><h3>Nhập mã kết quả của học sinh</h3><p class="muted">Dán một hoặc nhiều mã (TC4…) mà phụ huynh gửi qua Zalo, hoặc mã lấy từ máy tính bảng của lớp. Có thể dán cả đoạn tin nhắn, app tự tìm mã. Lượt nào đã nhập rồi sẽ không bị tính trùng.</p>' +
-    '<textarea id="impbox" class="code" placeholder="Dán mã vào đây…">' + esc(G.imp) + '</textarea><div class="qact"><button class="btn pri" data-act="gv-import">Nhập kết quả</button></div></div>';
-  var n = Object.keys(S.hs).filter(function (m) { return attemptsOf(m).length; }).length;
-  h += '<div class="box"><h3>Lấy mã của máy này</h3><p class="muted">Dùng trên máy tính bảng của lớp: tạo một mã chứa kết quả của tất cả học sinh đã luyện trên máy này (' + n + ' em), rồi gửi sang máy của cô.</p>' +
-    '<div class="qact"><button class="btn" data-act="gv-devcode"' + (n ? '' : ' disabled') + '>Tạo mã của máy này</button></div>' + (G.dev ? '<textarea id="devcode" class="code" readonly>' + esc(G.dev) + '</textarea><div class="qact"><button class="btn pri" data-act="gv-copydev">Sao chép mã</button></div>' : '') + '</div>';
-  return h;
-}
 GVACT['gv-copyarea'] = function () { var t = document.getElementById('copyarea'); copyText(t.value, t); };
 GVACT['gv-closecopy'] = function () { G.copy = null; render(); };
-GVACT['gv-copydev'] = function () { var t = document.getElementById('devcode'); copyText(t.value, t); };
-GVACT['gv-devcode'] = function () { var o = packHs(Object.keys(S.hs).filter(function (m) { return attemptsOf(m).length; })); encode(o).then(function (c) { G.dev = c; render(); }); };
-GVACT['gv-import'] = function () {
-  var txt = document.getElementById('impbox').value; G.imp = txt;
-  var codes = txt.match(/TC4[ZJ][A-Za-z0-9_-]{8,}/g) || [];
-  if (!codes.length) { toast('Không tìm thấy mã TC4 nào'); return; }
-  var added = 0, kids = {}, bad = 0;
-  codes.reduce(function (p, c) {
-    return p.then(function () {
-      return decode(c).then(function (o) {
-        Object.keys(o.h || {}).forEach(function (ma) {
-          var cur = GV.hs[ma] = GV.hs[ma] || { a: [] }, have = {};
-          if (o.n && o.n[ma] && o.n[ma].ten) { cur.ten = String(o.n[ma].ten).slice(0, 40); cur.lop = String(o.n[ma].lop || '').slice(0, 12); }
-          cur.a.forEach(function (a) { have[a.i] = 1; });
-          (o.h[ma] || []).forEach(function (a) { if (a && a.i && !have[a.i] && BYID[a.l]) { cur.a.push(a); have[a.i] = 1; added++; kids[ma] = 1; } });
-        });
-      }, function () { bad++; });
-    });
-  }, Promise.resolve()).then(function () {
-    return gvSave(Object.keys(kids));
-  }).then(function () {
-    G.imp = ''; toast('Đã nhập ' + added + ' lượt mới của ' + Object.keys(kids).length + ' em' + (bad ? ' · ' + bad + ' mã đọc không được' : '')); G.tab = 'kq'; render();
-  });
-};
-
 /* ---------- tab trợ lý AI ---------- */
 function aiStatus() {
   return '<p class="small muted">Trợ lý AI dùng tài khoản Claude của cô và chỉ chạy khi cô mở app trong Claude (đã đăng nhập). Học sinh không trò chuyện với AI. Chỉ gửi cho AI: nội dung bài học, câu học sinh viết và số liệu theo số thứ tự, không gửi họ tên. AI có thể sai: cô luôn đọc lại trước khi dùng.</p>';
@@ -5835,7 +5954,6 @@ GVCHANGE['nx-lesson'] = function (el) { G.nxLesson = el.value; render(); };
 app.addEventListener('input', function (ev) {
   var t = ev.target;
   if (t.id === 'ai-note') G.aiNote = t.value;
-  if (t.id === 'impbox') G.imp = t.value;
   if (t.dataset && t.dataset.nx != null && G.nxOut) G.nxOut.items[Number(t.dataset.nx)].nx = t.value;
   if (t.dataset && t.dataset.dk != null && G.dkOut) G.dkOut[Number(t.dataset.dk)].nx = t.value;
 });
@@ -6024,7 +6142,7 @@ function tabSet() {
     '<p class="small muted">Lịch tự tính lấy tuần 1 bắt đầu ngày 7/9/2026 và không trừ kì nghỉ Tết. Sau Tết, cô chọn tuần cụ thể cho đúng.</p></div>' +
     '<div class="box"><h3>File app cho học sinh</h3><p class="muted small">Học sinh mở app bằng file này (trên máy tính bảng của lớp, hoặc cô đưa lên một trang lưu trữ web miễn phí để phụ huynh mở). File đã gồm toàn bộ câu hỏi, câu cô giao thêm, câu đã ẩn và cài đặt hiện tại' + (dirty() ? ', kể cả thay đổi chưa giao' : '') + '. Mỗi lần cô giao thêm câu hỏi, cô tải file mới và thay file cũ.</p><div class="qact"><button class="btn pri" data-act="dl-html">Tải file app cho học sinh (.html)</button></div></div>' +
     '<div class="box"><h3>Trên máy này</h3><div class="qact"><button class="btn" data-act="set-pin">Đổi mã PIN</button><button class="btn" data-act="set-wipe">Xoá kết quả học sinh trên máy này</button></div>' +
-    (G.confirm === 'wipe' ? '<div class="confirm"><b>Xoá toàn bộ kết quả học sinh lưu trên máy này?</b><span class="small">Kết quả đã nhập vào Góc giáo viên không bị xoá. Nên lấy “mã của máy này” trước khi xoá.</span><div class="qact"><button class="btn" data-act="set-wipe-no">Không xoá</button><button class="btn pri" data-act="set-wipe-yes">Xoá</button></div></div>' : '') + '</div>';
+    (G.confirm === 'wipe' ? '<div class="confirm"><b>Xoá toàn bộ kết quả học sinh lưu trên máy này?</b><span class="small">Kết quả đã gửi lên Firebase không bị xoá. Lượt nào chưa gửi được (máy chưa có mạng) sẽ mất.</span><div class="qact"><button class="btn" data-act="set-wipe-no">Không xoá</button><button class="btn pri" data-act="set-wipe-yes">Xoá</button></div></div>' : '') + '</div>';
 }
 function weekNowFor() { var t = DATA.cfg.tuan; DATA.cfg.tuan = 0; var w = weekNow(); DATA.cfg.tuan = t; return w; }
 GVCHANGE['set-lop'] = function (el) { PEND.cfg.lop = el.value.trim().slice(0, 12); savePend(); render(); };
@@ -6089,7 +6207,7 @@ var FBCFG = {
   appId: '1:151129256059:web:2361cfd55c292cec5e72de'
 };
 var FBV = '10.14.1';
-var FB = { on: false, db: null, auth: null, user: null, teacher: false, hs: {}, n: 0, err: '', unsub: null, busy: false };
+var FB = { on: false, db: null, auth: null, user: null, teacher: false, hs: {}, n: 0, err: '', wErr: '', unsub: null, busy: false, again: false, retry: 0 };
 function fbLoad() {
   if (!FBCFG) return Promise.reject(new Error('no-config'));
   if (window.firebase && window.firebase.firestore) return Promise.resolve();
@@ -6114,7 +6232,9 @@ function fbStart() {
       if (V.view === 'gv') render();
     });
     window.addEventListener('online', fbFlush);
-  }).catch(function (e) { FB.err = e.message === 'no-config' ? '' : 'Không tải được Firebase'; });
+    window.addEventListener('offline', fbSyncUI);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) fbFlush(); });
+  }).catch(function (e) { FB.err = e.message === 'no-config' ? '' : 'Không tải được Firebase'; fbSyncUI(); });
 }
 /* Lượt chơi dạng lưu trên Firestore (mảng lồng mảng không được phép, nên câu tự viết đổi thành object) */
 function fbDoc(ma, a, inf) {
@@ -6131,25 +6251,47 @@ function fbAtt(d) {
 }
 /* Gửi mọi lượt chưa gửi; lượt đã có trên server thì luật chỉ cho tạo mới nên bị từ chối, coi như đã gửi */
 function fbFlush() {
-  if (!FB.on || !FB.user || FB.busy || !navigator.onLine) return;
+  if (!FB.on || !FB.user || !navigator.onLine) { fbSyncUI(); return; }
+  if (FB.busy) { FB.again = true; return; }
+  clearTimeout(FB.retry); FB.again = false;
   var up = LS.get('tc4.up', {}), todo = [];
-  var R = FB.teacher ? records() : null;
-  Object.keys(R || S.hs).forEach(function (ma) {
-    (R ? R[ma] : attemptsOf(ma)).forEach(function (a) { if (!up[a.i] && BYID[a.l] && !(FB.hs[ma] && FB.hs[ma].have[a.i])) todo.push([ma, a]); });
+  var R = {};
+  Object.keys(S.hs).forEach(function (ma) { R[ma] = attemptsOf(ma).slice(); });
+  if (FB.teacher) Object.keys(GV.hs).forEach(function (ma) { R[ma] = (R[ma] || []).concat(GV.hs[ma].a || []); });
+  Object.keys(R).forEach(function (ma) {
+    R[ma].forEach(function (a) { if (!up[a.i] && BYID[a.l] && !(FB.hs[ma] && FB.hs[ma].have[a.i])) todo.push([ma, a]); });
   });
-  if (!todo.length) return;
-  FB.busy = true;
+  if (!todo.length) { fbSyncUI(); return; }
+  FB.busy = true; fbSyncUI();
   var col = FB.db.collection('luot');
   todo.reduce(function (p, x) {
     return p.then(function () {
       return col.doc(x[1].i).set(fbDoc(x[0], x[1], hsInfo(x[0]))).then(function () { up[x[1].i] = 1; }, function (e) { if (e && e.code === 'permission-denied') up[x[1].i] = 1; else throw e; });
     });
-  }, Promise.resolve()).catch(function (e) { FB.err = e.code || 'write'; }).then(function () { LS.set('tc4.up', up); FB.busy = false; });
+  }, Promise.resolve()).then(function () { FB.wErr = ''; }, function (e) { FB.wErr = e.code || 'write'; }).then(function () {
+    LS.set('tc4.up', up); FB.busy = false;
+    if (FB.again) fbFlush();
+    else { if (FB.wErr) FB.retry = setTimeout(fbFlush, 15000); fbSyncUI(); }
+  });
 }
-function fbPush(ma, a) {
-  if (!FB.on || !FB.user) return;
-  var up = LS.get('tc4.up', {});
-  FB.db.collection('luot').doc(a.i).set(fbDoc(ma, a, hsInfo(ma))).then(function () { up[a.i] = 1; LS.set('tc4.up', up); }, function () { });
+/* Học sinh làm xong một lượt: gửi ngay lên Firebase; chưa gửi được thì tự thử lại (khi có mạng, khi mở lại app, 15 giây/lần) */
+function fbPush() { fbFlush(); }
+/* Số lượt của em (hoặc cả máy) chưa lên máy chủ */
+function fbPending(ma) {
+  var up = LS.get('tc4.up', {}), n = 0;
+  (ma ? [ma] : Object.keys(S.hs)).forEach(function (m) { attemptsOf(m).forEach(function (a) { if (!up[a.i] && BYID[a.l]) n++; }); });
+  return n;
+}
+function syncNote(ma) {
+  if (!FBCFG) return '';
+  var n = fbPending(ma), st = !n ? 'ok' : !navigator.onLine ? 'off' : 'wait';
+  var txt = st === 'ok' ? (attemptsOf(ma).length ? 'Kết quả của em đã tự gửi đến cô.' : 'Làm xong, kết quả sẽ tự gửi đến cô.')
+    : st === 'off' ? 'Máy chưa có mạng. Còn ' + n + ' lượt chờ gửi, có mạng app sẽ tự gửi cho cô.'
+    : 'Đang gửi kết quả cho cô…';
+  return '<p class="syncst ' + st + '" data-ma="' + esc(ma || '') + '" role="status">' + (st === 'ok' ? ICON.check : ICON.send) + '<span>' + txt + '</span></p>';
+}
+function fbSyncUI() {
+  document.querySelectorAll('.syncst').forEach(function (el) { var t = document.createElement('div'); t.innerHTML = syncNote(el.getAttribute('data-ma')); el.replaceWith(t.firstChild); });
 }
 function fbListen() {
   if (FB.unsub) return;
@@ -6161,7 +6303,7 @@ function fbListen() {
       r.a.push(fbAtt(d)); r.have[d.i] = 1;
     });
     FB.hs = hs; FB.n = snap.size; FB.err = '';
-    if (V.view === 'gv' && (G.tab === 'kq' || G.tab === 'hs')) render();
+    if (V.view === 'gv' && (G.tab === 'tk' || G.tab === 'kq' || G.tab === 'hs')) keepFocus(render);
     fbFlush();
   }, function (e) { FB.err = e.code === 'permission-denied' ? 'Tài khoản này chưa được cấp quyền xem kết quả lớp.' : 'Mất kết nối Firebase (' + e.code + ')'; fbStop(); if (V.view === 'gv') render(); });
 }

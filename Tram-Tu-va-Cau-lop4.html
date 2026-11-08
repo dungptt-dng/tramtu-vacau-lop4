@@ -512,6 +512,8 @@ mark{background:var(--sun-soft);color:inherit;border-radius:4px;padding:0 .2em;f
 .tk-rank .st i{font-style:normal;color:var(--star-off)}
 .tk-rank td small{display:block;font-size:.75rem;color:var(--muted);font-weight:700}
 .tk-rank td.dur b{color:var(--ok-ink)}
+.gop-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:8px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.tk-hist .form{margin-top:4px}
 .tk-top{border-color:var(--sun);box-shadow:0 4px 0 var(--sun-soft)}
 .tk-top .hd h3{font-size:1.4rem}
 .tk-hist summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center}
@@ -626,7 +628,7 @@ table.mx{border-collapse:collapse;font-size:.82rem;min-width:100%}
 }
 @media (max-width:360px){.opts.two{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style><div id="app"><div class="wrap"><p class="boot">Đang mở Vương quốc Từ hay – Câu đẹp Lớp 4…</p></div></div><script type="application/json" id="tc-data">{"v":1,"ver":1794153169797,"cfg":{"siSo":33,"tuan":0,"moKhoa":false,"lop":""},"extra":{},"an":[]}</script><script id="tc-bank">var BANK_PARTS = [];
+</style><div id="app"><div class="wrap"><p class="boot">Đang mở Vương quốc Từ hay – Câu đẹp Lớp 4…</p></div></div><script type="application/json" id="tc-data">{"v":1,"ver":1794155205953,"cfg":{"siSo":33,"tuan":0,"moKhoa":false,"lop":"","gop":{"LỚ":"4/11"}},"extra":{},"an":[]}</script><script id="tc-bank">var BANK_PARTS = [];
 (function(){const BANK_PART = [
   // ===================== BÀI 1: DANH TỪ =====================
   {
@@ -4711,7 +4713,7 @@ function normTen(s) { return String(s == null ? '' : s).normalize('NFC').replace
 function hoaTen(s) { return normTen(s).split(' ').map(function (w) { return w.charAt(0).toLocaleUpperCase('vi') + w.slice(1); }).join(' '); }
 function hsKey(ten, lop) { var r = seeded(normTen(lop).toLocaleLowerCase('vi') + '|' + normTen(ten).toLocaleLowerCase('vi')); return 'h' + Math.floor(r() * 4294967296).toString(36) + Math.floor(r() * 4294967296).toString(36); }
 function hsInfo(ma) { var r = S.hs[ma]; if (r && r.ten) return r; r = GV && GV.hs[ma]; if (r && r.ten) return r; r = FB && FB.hs[ma]; return r && r.ten ? r : null; }
-function who(ma, noLop) { var r = hsInfo(ma); return r ? r.ten + (r.lop && !noLop ? ' · ' + r.lop : '') : 'Số ' + ma; }
+function who(ma, noLop) { var r = hsInfo(ma); return r ? r.ten + (r.lop && !noLop ? ' · ' + lopOf(ma) : '') : 'Số ' + ma; }
 function byWho(a, b) { return who(a).localeCompare(who(b), 'vi', { numeric: true }); }
 function unlocked(sid, m) {
   if (m === 1 || DATA.cfg.moKhoa) return true;
@@ -4947,6 +4949,8 @@ function startHs() {
   var ten = hoaTen(fT.value), lop = normTen(fL.value).toLocaleUpperCase('vi');
   if (ten.length < 2 || !/\p{L}/u.test(ten)) { toast('Em nhập họ và tên của em nhé'); fT.focus(); return; }
   if (!lop) { toast('Em nhập lớp của em nhé'); fL.focus(); return; }
+  if (!/\d/.test(lop)) { toast('Em nhập lớp có cả số, ví dụ 4/11'); fL.focus(); return; }
+  lop = normLop(lop);
   var ma = hsKey(ten, lop);
   S.hs[ma] = S.hs[ma] || { a: [] }; S.hs[ma].ten = ten; S.hs[ma].lop = lop;
   S.cur = ma; saveS(); go('home');
@@ -5494,7 +5498,7 @@ app.addEventListener('change', function (ev) { if (ev.target.id === 'hs-ten') fi
    GÓC GIÁO VIÊN
    ===================================================================== */
 var GV = { hs: {} }, DB = null, UID = null, GVREADY = false, PEND = null, DRAFTS = [], AIBUSY = null;
-var G = { tab: 'tk', fLop: '', fQ: '', bxh: null, hLim: 50, range: null, lesson: null, aiLesson: null, aiLv: 1, aiN: 5, aiTypes: { mc: 1, pick: 1, sort: 1, ai: 1 }, aiNote: '', nxLesson: null, nxOut: null, planOut: '', dkOut: null, bankLesson: null, confirm: null };
+var G = { tab: 'tk', fLop: '', fQ: '', hBai: '', bxh: null, hLim: 50, range: null, lesson: null, aiLesson: null, aiLv: 1, aiN: 5, aiTypes: { mc: 1, pick: 1, sort: 1, ai: 1 }, aiNote: '', nxLesson: null, nxOut: null, planOut: '', dkOut: null, bankLesson: null, confirm: null };
 var GVACT = {}, GVCHANGE = {};
 function openGV() {
   var ok = SS.get('tc4.gvok');
@@ -5548,7 +5552,13 @@ function gvSave(mas) {
 function records() {
   var out = {};
   if (!FB.teacher) return out;
-  Object.keys(FB.hs).forEach(function (ma) { out[ma] = FB.hs[ma].a.slice(); });
+  var canon = {};
+  Object.keys(FB.hs).forEach(function (ma) {
+    var r = FB.hs[ma], key = r.ten ? khongDau(normTen(r.ten)) + '|' + lopOf(ma) : ma, c = canon[key];
+    if (!c) c = canon[key] = ma;
+    else if (normLop(r.lop) === lopOf(ma) && normLop(FB.hs[c].lop) !== lopOf(c)) { out[ma] = out[c]; delete out[c]; c = canon[key] = ma; }
+    out[c] = (out[c] || []).concat(r.a);
+  });
   Object.keys(out).forEach(function (ma) { out[ma].sort(function (x, y) { return x.t - y.t; }); });
   return out;
 }
@@ -5576,7 +5586,9 @@ GVACT['gv-lockout'] = function () { SS.del('tc4.gvok'); go('home'); };
 
 /* ---------- tab thống kê: tổng quan theo lớp, danh sách học sinh, bảng xếp hạng sao, lịch sử ---------- */
 function normLop(l) { l = normTen(l).toLocaleUpperCase('vi').replace(/^LỚP\s*/, ''); return l.replace(/^(\d+)\s*[-._\\\s]\s*(\d+)$/, '$1/$2') || '–'; }
-function lopOf(ma) { var r = hsInfo(ma); return normLop(r && r.lop); }
+/* Lớp học sinh nhập nhầm được gộp vào lớp đúng theo cfg.gop (cô đặt ở tab Cài đặt) */
+function gopMap() { var c = (PEND || DATA).cfg; return c.gop || {}; }
+function lopOf(ma) { var r = hsInfo(ma), l = normLop(r && r.lop); return gopMap()[l] || l; }
 function khongDau(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
 function fullTime(t) { var d = new Date(t), p = function (n) { return (n < 10 ? '0' : '') + n; }; return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(); }
 function lvName(a) { return a.m ? LVN[a.m] : (a.v === 'k' ? 'Kiểm tra nhanh' : 'Ôn luyện'); }
@@ -5625,7 +5637,7 @@ function tabTK() {
     '<label class="grow">🔎 Tìm học sinh<input id="tk-q" class="field" type="search" autocomplete="off" placeholder="Nhập họ tên học sinh…" value="' + esc(G.fQ || '') + '"></label>' +
     '<div class="qact"><button class="btn pri" data-act="tk-refresh">Làm mới</button><button class="btn ok" data-act="tk-csv">Tải báo cáo lớp</button><button class="btn" data-act="tk-hcsv">Tải lịch sử</button></div></div>';
   if (!Object.keys(R).length) return h + '<p class="muted">Chưa có kết quả. Học sinh làm xong ở bất kì máy nào, kết quả tự gửi lên Firebase và hiện ngay ở đây.</p>';
-  h += tkLopTable(R) + tkHsTable(R, list) + tkHistory(R, list);
+  h += tkLopTable(R) + tkHsTable(R, list) + tkHistory(R, list, lops);
   return h;
 }
 function tkHead(tag, cls, title, note) { return '<div class="hd"><div><span class="eyebrow ' + cls + '">' + tag + '</span><h3>' + title + '</h3></div><p class="small muted">' + note + '</p></div>'; }
@@ -5682,7 +5694,7 @@ function tkRank(R, lops) {
 }
 function tkHistRows(R, list) {
   var out = [];
-  list.forEach(function (ma) { R[ma].forEach(function (a) { out.push({ ma: ma, a: a }); }); });
+  list.forEach(function (ma) { R[ma].forEach(function (a) { if (!G.hBai || a.l === G.hBai) out.push({ ma: ma, a: a }); }); });
   return out.sort(function (x, y) { return y.a.t - x.a.t; });
 }
 function needTxt(a) {
@@ -5690,10 +5702,12 @@ function needTxt(a) {
   var f = findQ(ids[0]), p = f ? plain(f.q.p) : '';
   return ids.length + ' câu sai' + (p ? ' · ' + (p.length > 60 ? p.slice(0, 58) + '…' : p) : '');
 }
-function tkHistory(R, list) {
+function tkHistory(R, list, lops) {
   var rows = tkHistRows(R, list), lim = G.hLim || 50;
-  var h = '<details class="box tk-sec tk-hist"' + (G.hClosed ? '' : ' open') + '><summary><h3>🕘 Lịch sử học chi tiết <span class="small muted">(' + rows.length + ' lượt)</span></h3></summary>';
-  if (!rows.length) return h + '<p class="muted">Chưa có lượt học nào.</p></details>';
+  var h = '<details class="box tk-sec tk-hist"' + (G.hClosed ? '' : ' open') + '><summary><h3>🕘 Lịch sử học chi tiết <span class="small muted">(' + rows.length + ' lượt)</span></h3></summary>' +
+    '<div class="form"><label class="grow">Bài<select id="tk-hbai" class="field"><option value="">Tất cả các bài</option>' + stationOptions(G.hBai, true) + '</select></label>' +
+    '<label>Lớp<select id="tk-lop3" class="field"><option value="">Tất cả lớp</option>' + lops.map(function (l) { return '<option value="' + esc(l) + '"' + (l === G.fLop ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select></label></div>';
+  if (!rows.length) return h + '<p class="muted">Chưa có lượt học nào' + (G.hBai || G.fLop ? ' khớp bài và lớp đã chọn' : '') + '.</p></details>';
   h += '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Thời gian</th><th>Học sinh</th><th>Lớp</th><th>Bài</th><th>Điểm</th><th>Đúng/Sai</th><th>Thời gian làm</th><th>Cần luyện</th></tr></thead><tbody>' +
     rows.slice(0, lim).map(function (r) {
       var a = r.a, sai = (a.x || []).length, nd = needTxt(a);
@@ -5704,7 +5718,8 @@ function tkHistory(R, list) {
 }
 function csvOf(rows) { return '﻿' + rows.map(function (r) { return r.map(function (c) { c = String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\r\n'); }
 function tkFileTag() { return G.fLop ? '-lop-' + G.fLop.replace(/[^\w-]+/g, '-') : ''; }
-GVCHANGE['tk-lop'] = GVCHANGE['tk-lop2'] = function (el) { G.fLop = el.value; G.hLim = 50; render(); };
+GVCHANGE['tk-hbai'] = function (el) { G.hBai = el.value; G.hLim = 50; render(); };
+GVCHANGE['tk-lop'] = GVCHANGE['tk-lop2'] = GVCHANGE['tk-lop3'] = function (el) { G.fLop = el.value; G.hLim = 50; render(); };
 GVCHANGE['tk-bxh'] = function (el) { G.bxh = el.value; render(); };
 GVACT['tk-lop'] = function (el, k) { G.fLop = G.fLop === k ? '' : k; G.hLim = 50; render(); };
 GVACT['tk-hs'] = function (el, k) { G.tab = 'hs'; G.hs = k; render(); var d = app.querySelector('.hs-detail'); if (d) d.scrollIntoView({ block: 'start' }); };
@@ -5722,7 +5737,7 @@ GVACT['tk-hcsv'] = function () {
   tkHistRows(R, tkList(R)).forEach(function (r) { var a = r.a, sai = (a.x || []).length; rows.push([fullTime(a.t), who(r.ma, true), lopOf(r.ma), stName(a.l), lvName(a), Math.round(pct(a) * 100), a.n - sai, sai, a.d || '', needTxt(a)]); });
   if (rows.length < 2) { toast('Chưa có lượt học để tải'); return; }
   var csv = csvOf(rows);
-  saveFile('lich-su-hoc' + tkFileTag() + '.csv', csv, 'text/csv', function () { showCopy('Lịch sử học (dán vào Excel)', csv.slice(1)); });
+  saveFile('lich-su-hoc' + tkFileTag() + (G.hBai ? '-' + G.hBai : '') + '.csv', csv, 'text/csv', function () { showCopy('Lịch sử học (dán vào Excel)', csv.slice(1)); });
 };
 /* Vẽ lại mà không làm mất chỗ con trỏ trong ô tìm kiếm */
 function keepFocus(fn) {
@@ -6165,10 +6180,28 @@ function tabSet() {
     '<label>Tuần đang học<select id="set-tuan" class="field"><option value="0"' + (!c.tuan ? ' selected' : '') + '>Tự tính theo lịch (tuần ' + weekNowFor(0) + ')</option>' + wk + '</select></label></div>' +
     '<div class="checkrow"><label class="small"><input type="checkbox" id="set-mokhoa"' + (c.moKhoa ? ' checked' : '') + '> Mở sẵn cả 3 mức cho mọi bài (không cần đạt 2 sao mới lên mức)</label></div>' +
     '<p class="small muted">Lịch tự tính lấy tuần 1 bắt đầu ngày 7/9/2026 và không trừ kì nghỉ Tết. Sau Tết, cô chọn tuần cụ thể cho đúng.</p></div>' +
-    '<div class="box"><h3>File app cho học sinh</h3><p class="muted small">Học sinh mở app bằng file này (trên máy tính bảng của lớp, hoặc cô đưa lên một trang lưu trữ web miễn phí để phụ huynh mở). File đã gồm toàn bộ câu hỏi, câu cô giao thêm, câu đã ẩn và cài đặt hiện tại' + (dirty() ? ', kể cả thay đổi chưa giao' : '') + '. Mỗi lần cô giao thêm câu hỏi, cô tải file mới và thay file cũ.</p><div class="qact"><button class="btn pri" data-act="dl-html">Tải file app cho học sinh (.html)</button></div></div>' +
+    gopBox() + '<div class="box"><h3>File app cho học sinh</h3><p class="muted small">Học sinh mở app bằng file này (trên máy tính bảng của lớp, hoặc cô đưa lên một trang lưu trữ web miễn phí để phụ huynh mở). File đã gồm toàn bộ câu hỏi, câu cô giao thêm, câu đã ẩn và cài đặt hiện tại' + (dirty() ? ', kể cả thay đổi chưa giao' : '') + '. Mỗi lần cô giao thêm câu hỏi, cô tải file mới và thay file cũ.</p><div class="qact"><button class="btn pri" data-act="dl-html">Tải file app cho học sinh (.html)</button></div></div>' +
     '<div class="box"><h3>Trên máy này</h3><div class="qact"><button class="btn" data-act="set-pin">Đổi mã PIN</button><button class="btn" data-act="set-wipe">Xoá kết quả học sinh trên máy này</button></div>' +
     (G.confirm === 'wipe' ? '<div class="confirm"><b>Xoá toàn bộ kết quả học sinh lưu trên máy này?</b><span class="small">Kết quả đã gửi lên Firebase không bị xoá. Lượt nào chưa gửi được (máy chưa có mạng) sẽ mất.</span><div class="qact"><button class="btn" data-act="set-wipe-no">Không xoá</button><button class="btn pri" data-act="set-wipe-yes">Xoá</button></div></div>' : '') + '</div>';
 }
+function gopBox() {
+  var g = PEND.cfg.gop || {}, ks = Object.keys(g), known = {};
+  Object.keys(FB.hs).forEach(function (ma) { known[normLop(FB.hs[ma].lop)] = 1; });
+  return '<div class="box"><h3>Gộp lớp</h3><p class="muted small">Học sinh nhập nhầm tên lớp (ví dụ “LỚ” thay vì “4/11”)? Cô gộp lớp nhầm vào lớp đúng: kết quả được tính chung, em trùng họ tên trong cùng lớp được gộp làm một. Áp dụng cho mọi máy sau khi cô bấm “Cập nhật cho cả lớp”.</p>' +
+    (ks.length ? '<div class="list">' + ks.map(function (k) { return '<div class="gop-row"><span>Lớp <b>' + esc(k) + '</b> → gộp vào lớp <b>' + esc(g[k]) + '</b></span><button class="btn sm" data-act="gop-del" data-k="' + esc(k) + '">Bỏ gộp</button></div>'; }).join('') + '</div>' : '') +
+    '<div class="form"><label>Lớp nhập nhầm<input id="gop-from" class="field" list="gop-known" maxlength="12" placeholder="LỚ"></label><label>Gộp vào lớp<input id="gop-to" class="field" list="gop-known" maxlength="12" placeholder="4/11"></label><button class="btn pri" data-act="gop-add">Gộp</button></div>' +
+    '<datalist id="gop-known">' + Object.keys(known).sort().map(function (k) { return '<option value="' + esc(k) + '">'; }).join('') + '</datalist></div>';
+}
+GVACT['gop-add'] = function () {
+  var from = normLop(document.getElementById('gop-from').value), to = normLop(document.getElementById('gop-to').value);
+  if (from === '–' || to === '–') { toast('Cô nhập cả lớp nhập nhầm và lớp đúng'); return; }
+  var g = Object.assign({}, PEND.cfg.gop || {});
+  to = g[to] || to;
+  if (from === to) { toast('Hai lớp đang giống nhau'); return; }
+  g[from] = to; Object.keys(g).forEach(function (k) { if (g[k] === from) g[k] = to; });
+  PEND.cfg.gop = g; savePend(); render(); toast('Đã gộp lớp ' + from + ' vào lớp ' + to);
+};
+GVACT['gop-del'] = function (el, k) { var g = Object.assign({}, PEND.cfg.gop || {}); delete g[k]; if (Object.keys(g).length) PEND.cfg.gop = g; else delete PEND.cfg.gop; savePend(); render(); };
 function weekNowFor() { var t = DATA.cfg.tuan; DATA.cfg.tuan = 0; var w = weekNow(); DATA.cfg.tuan = t; return w; }
 GVCHANGE['set-lop'] = function (el) { PEND.cfg.lop = el.value.trim().slice(0, 12); savePend(); render(); };
 GVCHANGE['set-siso'] = function (el) { var n = Math.max(5, Math.min(60, Number(el.value) || 35)); PEND.cfg.siSo = n; savePend(); render(); };

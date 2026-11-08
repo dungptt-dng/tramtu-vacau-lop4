@@ -11,7 +11,7 @@ service cloud.firestore {
     }
     function validLuot(id) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['ma', 'ten', 'lop', 'i', 'l', 'm', 't', 'n', 'k', 'w', 'x', 'v', 's'])
+      return d.keys().hasOnly(['ma', 'ten', 'lop', 'i', 'l', 'm', 't', 'n', 'k', 'w', 'x', 'v', 's', 'd'])
         && d.keys().hasAll(['ma', 'ten', 'lop', 'i', 'l', 'm', 't', 'n', 'k', 'w', 'x'])
         && d.i == id && id.size() <= 40
         && d.ma is string && d.ma.size() <= 40
@@ -25,7 +25,8 @@ service cloud.firestore {
         && d.w is list && d.w.size() <= 60
         && d.x is list && d.x.size() <= 60
         && (!('v' in d) || d.v in ['k', 'r'])
-        && (!('s' in d) || (d.s is list && d.s.size() <= 20));
+        && (!('s' in d) || (d.s is list && d.s.size() <= 20))
+        && (!('d' in d) || (d.d is int && d.d >= 1 && d.d <= 7200));
     }
     match /luot/{id} {
       allow create: if request.auth != null && validLuot(id);

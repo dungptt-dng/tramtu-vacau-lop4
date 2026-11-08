@@ -510,6 +510,10 @@ mark{background:var(--sun-soft);color:inherit;border-radius:4px;padding:0 .2em;f
 .mx.tk-rank tr.rk2 td,.mx.tk-rank tr.rk3 td{background:var(--surface-2)}
 .tk-rank .st{color:var(--star);letter-spacing:1px}
 .tk-rank .st i{font-style:normal;color:var(--star-off)}
+.tk-rank td small{display:block;font-size:.75rem;color:var(--muted);font-weight:700}
+.tk-rank td.dur b{color:var(--ok-ink)}
+.tk-top{border-color:var(--sun);box-shadow:0 4px 0 var(--sun-soft)}
+.tk-top .hd h3{font-size:1.4rem}
 .tk-hist summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center}
 .tk-hist summary::-webkit-details-marker{display:none}
 .tk-hist summary h3::after{content:' ▾';color:var(--muted);font-size:.9rem}
@@ -5298,6 +5302,12 @@ function writeChecks(q, text) {
   }
   return c;
 }
+/* Thời gian làm bài: không tính lúc em chuyển sang app khác hoặc tắt màn hình */
+document.addEventListener('visibilitychange', function () {
+  if (!Q) return;
+  if (document.hidden) Q.h0 = Date.now();
+  else if (Q.h0) { Q.idle = (Q.idle || 0) + Date.now() - Q.h0; Q.h0 = 0; }
+});
 function finishQuiz() {
   var graded = Q.items.filter(function (x) { return x.q.t !== 'write'; });
   var a = {
@@ -5307,6 +5317,7 @@ function finishQuiz() {
     x: graded.filter(function (x) { return !x.ok; }).map(function (x) { return x.q.id; })
   };
   if (Q.m === 0) a.v = Q.mode;
+  if (Q.t0) a.d = Math.max(1, Math.min(7200, Math.round((Date.now() - Q.t0 - (Q.idle || 0) - (Q.h0 ? Date.now() - Q.h0 : 0)) / 1000)));
   var ws = Q.items.filter(function (x) { return x.q.t === 'write' && x.text.trim(); }).map(function (x) { return [x.q.id, x.text.trim().slice(0, 400)]; });
   if (ws.length) a.s = ws;
   S.hs[S.cur] = S.hs[S.cur] || { a: [] }; S.hs[S.cur].a.push(a); saveS(); fbPush(S.cur, a);
@@ -5575,14 +5586,24 @@ function pctTxt(p) { return p < 0 ? '–' : Math.round(p * 100) + '%'; }
 /* Một bài tính là hoàn thành khi em đạt từ 70% (2 sao) ở mức Khởi động — giống tab Học sinh */
 function doneCount(atts) { return LESSONS.filter(function (L) { return bestBy(atts, L.id, 1) >= 0.7; }).length; }
 /* Tổng sao tốt nhất của các mức trong các bài ids; t = lúc em đạt tới tổng sao đó (để xếp khi bằng sao) */
+/* Sao tốt nhất từng vòng trong các bài ids. Mỗi vòng lấy lượt nhanh nhất trong các lượt đạt số sao đó;
+   dur = tổng thời gian các vòng (0 nếu có vòng làm từ trước khi app ghi thời gian); t = lúc đạt tổng sao */
 function starRun(atts, ids) {
   var best = {}, tot = 0, at = 0;
   atts.forEach(function (a) {
     if (!a.m || !ids[a.l]) return;
-    var k = a.l + ':' + a.m, s = starsFor(pct(a)), o = best[k] || 0;
-    if (s > o) { best[k] = s; tot += s - o; at = a.t; }
+    var k = a.l + ':' + a.m, st = starsFor(pct(a)), o = best[k];
+    if (!o || st > o.s) { tot += st - (o ? o.s : 0); best[k] = { s: st, d: a.d || 0 }; at = a.t; }
+    else if (st === o.s && a.d && (!o.d || a.d < o.d)) o.d = a.d;
   });
-  return { stars: tot, t: at, best: best };
+  var dur = 0, known = true;
+  Object.keys(best).forEach(function (k) { if (best[k].d) dur += best[k].d; else known = false; });
+  return { stars: tot, t: at, best: best, dur: known ? dur : 0 };
+}
+function fmtDur(sec) {
+  if (!sec) return '–';
+  var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60;
+  return h ? h + ' giờ ' + m + ' phút' : m ? m + ' phút' + (x ? ' ' + x + ' giây' : '') : x + ' giây';
 }
 function lessonsWithStars(best) { var o = {}; Object.keys(best).forEach(function (k) { o[k.split(':')[0]] = 1; }); return Object.keys(o).length; }
 function tkList(R) {
@@ -5599,12 +5620,12 @@ function tabTK() {
   var list = tkList(R), all = [];
   list.forEach(function (ma) { all = all.concat(R[ma]); });
   var kp = function (cls, ic, v, lab) { return '<div class="tk-kpi ' + cls + '"><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + v + '</b><span>' + lab + '</span></span></div>'; };
-  var h = '<div class="tk-kpis">' + kp('a', '🧒', list.length, 'Học sinh đã tham gia') + kp('b', '🏫', (G.fLop ? 1 : lops.length), 'Lớp đang có dữ liệu') + kp('c', '🧩', all.length, 'Lượt học đã ghi nhận') + kp('d', '🎯', pctTxt(avgPct(all)), 'Tỉ lệ đúng trung bình') + '</div>';
+  var h = (Object.keys(R).length ? tkRank(R, lops) : '') + '<div class="tk-kpis">' + kp('a', '🧒', list.length, 'Học sinh đã tham gia') + kp('b', '🏫', (G.fLop ? 1 : lops.length), 'Lớp đang có dữ liệu') + kp('c', '🧩', all.length, 'Lượt học đã ghi nhận') + kp('d', '🎯', pctTxt(avgPct(all)), 'Tỉ lệ đúng trung bình') + '</div>';
   h += '<div class="box tk-bar"><label>🏫 Lớp<select id="tk-lop" class="field"><option value="">Tất cả lớp</option>' + lops.map(function (l) { return '<option value="' + esc(l) + '"' + (l === G.fLop ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select></label>' +
     '<label class="grow">🔎 Tìm học sinh<input id="tk-q" class="field" type="search" autocomplete="off" placeholder="Nhập họ tên học sinh…" value="' + esc(G.fQ || '') + '"></label>' +
     '<div class="qact"><button class="btn pri" data-act="tk-refresh">Làm mới</button><button class="btn ok" data-act="tk-csv">Tải báo cáo lớp</button><button class="btn" data-act="tk-hcsv">Tải lịch sử</button></div></div>';
   if (!Object.keys(R).length) return h + '<p class="muted">Chưa có kết quả. Học sinh làm xong ở bất kì máy nào, kết quả tự gửi lên Firebase và hiện ngay ở đây.</p>';
-  h += tkLopTable(R) + tkHsTable(R, list) + tkRank(R) + tkHistory(R, list);
+  h += tkLopTable(R) + tkHsTable(R, list) + tkHistory(R, list);
   return h;
 }
 function tkHead(tag, cls, title, note) { return '<div class="hd"><div><span class="eyebrow ' + cls + '">' + tag + '</span><h3>' + title + '</h3></div><p class="small muted">' + note + '</p></div>'; }
@@ -5639,21 +5660,25 @@ function tkRankRows(R, sid) {
   var ids = {}; if (sid) ids[sid] = 1; else LESSONS.forEach(function (L) { ids[L.id] = 1; });
   return Object.keys(R).filter(function (ma) { return !G.fLop || lopOf(ma) === G.fLop; }).map(function (ma) {
     var r = starRun(R[ma], ids); r.ma = ma; r.ten = who(ma, true); r.lop = lopOf(ma); return r;
-  }).filter(function (r) { return r.stars > 0; }).sort(function (a, b) { return b.stars - a.stars || a.t - b.t || a.ten.localeCompare(b.ten, 'vi'); });
+  }).filter(function (r) { return r.stars > 0; }).sort(function (a, b) {
+    return b.stars - a.stars || (a.dur && b.dur ? a.dur - b.dur : (b.dur ? 1 : 0) - (a.dur ? 1 : 0)) || a.t - b.t || a.ten.localeCompare(b.ten, 'vi');
+  });
 }
-function tkRank(R) {
+function tkRank(R, lops) {
   if (G.bxh == null) { var cur = currentStation(), ls = LESSONS.filter(function (L) { return L.tuan <= cur.tuan; }); G.bxh = (ls[ls.length - 1] || LESSONS[0]).id; }
   var sid = G.bxh, rows = tkRankRows(R, sid), max = sid ? 9 : LESSONS.length * 9;
-  var h = '<div class="box tk-sec">' + tkHead('Xếp hạng', 'sun', 'Bảng xếp hạng số sao', 'Xếp theo tổng số sao từ cao đến thấp. Bằng sao nhau thì em đạt số sao đó sớm hơn được xếp trên.') +
-    '<div class="form"><label class="grow">Bài<select id="tk-bxh" class="field"><option value="">Tất cả các bài (tổng sao cả năm)</option>' + stationOptions(sid, false) + '</select></label>' + (G.fLop ? '<span class="tag">Lớp ' + esc(G.fLop) + '</span>' : '') + '</div>';
+  var h = '<div class="box tk-sec tk-top">' + tkHead('Xếp hạng', 'sun', '🏆 Bảng xếp hạng số sao', 'Xếp từ nhiều sao đến ít sao. Bằng sao nhau thì em hoàn thành nhanh hơn (tổng thời gian 3 vòng Khởi động, Tăng tốc, Chinh phục) được xếp trên.') +
+    '<div class="form"><label class="grow">Bài<select id="tk-bxh" class="field"><option value="">Tất cả các bài (tổng sao cả năm)</option>' + stationOptions(sid, false) + '</select></label>' +
+    '<label>Lớp<select id="tk-lop2" class="field"><option value="">Tất cả lớp</option>' + lops.map(function (l) { return '<option value="' + esc(l) + '"' + (l === G.fLop ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select></label></div>';
   if (!rows.length) return h + '<p class="muted">Chưa có em nào đạt sao ở ' + (sid ? 'bài này' : 'các bài') + '.</p></div>';
-  var medal = ['🥇', '🥈', '🥉'];
-  return h + '<div class="scroll"><table class="mx tk-t tk-rank"><thead><tr><th>Hạng</th><th>Học sinh</th><th>Lớp</th>' + (sid ? '<th>Khởi động</th><th>Tăng tốc</th><th>Chinh phục</th>' : '<th>Số bài có sao</th>') + '<th>Tổng sao</th><th>Đạt lúc</th></tr></thead><tbody>' +
+  var medal = ['🥇', '🥈', '🥉'], old = rows.some(function (r) { return !r.dur; });
+  var lvCell = function (b) { var st = b ? b.s : 0; return '<td><span class="st" aria-label="' + st + ' sao">' + '★★★'.slice(0, st) + '<i>' + '★★★'.slice(st) + '</i></span>' + (b && b.d ? '<small>' + fmtDur(b.d) + '</small>' : '') + '</td>'; };
+  return h + '<div class="scroll"><table class="mx tk-t tk-rank"><thead><tr><th>Hạng</th><th>Học sinh</th><th>Lớp</th>' + (sid ? '<th>Khởi động</th><th>Tăng tốc</th><th>Chinh phục</th>' : '<th>Số bài có sao</th>') + '<th>Tổng sao</th><th>Thời gian hoàn thành</th></tr></thead><tbody>' +
     rows.map(function (r, i) {
-      var mid = sid ? [1, 2, 3].map(function (m) { var s = r.best[sid + ':' + m] || 0; return '<td><span class="st" aria-label="' + s + ' sao">' + '★★★'.slice(0, s) + '<i>' + '★★★'.slice(s) + '</i></span></td>'; }).join('')
-        : '<td>' + lessonsWithStars(r.best) + '</td>';
-      return '<tr' + (i < 3 ? ' class="rk' + (i + 1) + '"' : '') + '><td class="rk">' + (i < 3 ? '<span aria-hidden="true">' + medal[i] + '</span> ' : '') + (i + 1) + '</td><td>' + esc(r.ten) + '</td><td>' + esc(r.lop) + '</td>' + mid + '<td><b>' + r.stars + '</b>/' + max + ' ★</td><td>' + fullTime(r.t) + '</td></tr>';
-    }).join('') + '</tbody></table></div></div>';
+      var mid = sid ? [1, 2, 3].map(function (m) { return lvCell(r.best[sid + ':' + m]); }).join('') : '<td>' + lessonsWithStars(r.best) + '</td>';
+      return '<tr' + (i < 3 ? ' class="rk' + (i + 1) + '"' : '') + '><td class="rk">' + (i < 3 ? '<span aria-hidden="true">' + medal[i] + '</span> ' : '') + (i + 1) + '</td><td>' + esc(r.ten) + '</td><td>' + esc(r.lop) + '</td>' + mid + '<td><b>' + r.stars + '</b>/' + max + ' ★</td><td class="dur">' + (r.dur ? '<b>' + fmtDur(r.dur) + '</b>' : '<span class="muted" title="Có vòng làm trước khi app ghi thời gian">–</span>') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    (old ? '<p class="small muted">“–”: có vòng em làm trước ngày 8/11/2026, khi app chưa ghi thời gian làm bài. Các em này xếp sau các bạn cùng số sao đã có thời gian; em làm lại vòng đó thì sẽ có thời gian.</p>' : '') + '</div>';
 }
 function tkHistRows(R, list) {
   var out = [];
@@ -5669,17 +5694,17 @@ function tkHistory(R, list) {
   var rows = tkHistRows(R, list), lim = G.hLim || 50;
   var h = '<details class="box tk-sec tk-hist"' + (G.hClosed ? '' : ' open') + '><summary><h3>🕘 Lịch sử học chi tiết <span class="small muted">(' + rows.length + ' lượt)</span></h3></summary>';
   if (!rows.length) return h + '<p class="muted">Chưa có lượt học nào.</p></details>';
-  h += '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Thời gian</th><th>Học sinh</th><th>Lớp</th><th>Bài</th><th>Điểm</th><th>Đúng/Sai</th><th>Cần luyện</th></tr></thead><tbody>' +
+  h += '<div class="scroll"><table class="mx tk-t"><thead><tr><th>Thời gian</th><th>Học sinh</th><th>Lớp</th><th>Bài</th><th>Điểm</th><th>Đúng/Sai</th><th>Thời gian làm</th><th>Cần luyện</th></tr></thead><tbody>' +
     rows.slice(0, lim).map(function (r) {
       var a = r.a, sai = (a.x || []).length, nd = needTxt(a);
-      return '<tr><td>' + fullTime(a.t) + '</td><td><b>' + esc(who(r.ma, true)) + '</b></td><td>' + esc(lopOf(r.ma)) + '</td><td class="wrap">' + esc(stName(a.l)) + ' <span class="muted">(' + lvName(a) + ')</span></td><td>' + Math.round(pct(a) * 100) + '/100</td><td>' + (a.n - sai) + '/' + sai + '</td><td class="wrap">' + (nd ? esc(nd) : '—') + '</td></tr>';
+      return '<tr><td>' + fullTime(a.t) + '</td><td><b>' + esc(who(r.ma, true)) + '</b></td><td>' + esc(lopOf(r.ma)) + '</td><td class="wrap">' + esc(stName(a.l)) + ' <span class="muted">(' + lvName(a) + ')</span></td><td>' + Math.round(pct(a) * 100) + '/100</td><td>' + (a.n - sai) + '/' + sai + '</td><td>' + fmtDur(a.d) + '</td><td class="wrap">' + (nd ? esc(nd) : '—') + '</td></tr>';
     }).join('') + '</tbody></table></div>' +
     (rows.length > lim ? '<div class="qact"><button class="btn" data-act="tk-more">Xem thêm (' + Math.min(50, rows.length - lim) + ' lượt)</button></div>' : '');
   return h + '</details>';
 }
 function csvOf(rows) { return '﻿' + rows.map(function (r) { return r.map(function (c) { c = String(c); return /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\r\n'); }
 function tkFileTag() { return G.fLop ? '-lop-' + G.fLop.replace(/[^\w-]+/g, '-') : ''; }
-GVCHANGE['tk-lop'] = function (el) { G.fLop = el.value; G.hLim = 50; render(); };
+GVCHANGE['tk-lop'] = GVCHANGE['tk-lop2'] = function (el) { G.fLop = el.value; G.hLim = 50; render(); };
 GVCHANGE['tk-bxh'] = function (el) { G.bxh = el.value; render(); };
 GVACT['tk-lop'] = function (el, k) { G.fLop = G.fLop === k ? '' : k; G.hLim = 50; render(); };
 GVACT['tk-hs'] = function (el, k) { G.tab = 'hs'; G.hs = k; render(); var d = app.querySelector('.hs-detail'); if (d) d.scrollIntoView({ block: 'start' }); };
@@ -5693,8 +5718,8 @@ GVACT['tk-csv'] = function () {
   saveFile('bao-cao-lop' + tkFileTag() + '.csv', csv, 'text/csv', function () { showCopy('Báo cáo lớp (dán vào Excel)', csv.slice(1)); });
 };
 GVACT['tk-hcsv'] = function () {
-  var R = records(), rows = [['Thời gian', 'Học sinh', 'Lớp', 'Bài', 'Mức', 'Điểm (/100)', 'Số câu đúng', 'Số câu sai', 'Cần luyện']];
-  tkHistRows(R, tkList(R)).forEach(function (r) { var a = r.a, sai = (a.x || []).length; rows.push([fullTime(a.t), who(r.ma, true), lopOf(r.ma), stName(a.l), lvName(a), Math.round(pct(a) * 100), a.n - sai, sai, needTxt(a)]); });
+  var R = records(), rows = [['Thời gian', 'Học sinh', 'Lớp', 'Bài', 'Mức', 'Điểm (/100)', 'Số câu đúng', 'Số câu sai', 'Thời gian làm (giây)', 'Cần luyện']];
+  tkHistRows(R, tkList(R)).forEach(function (r) { var a = r.a, sai = (a.x || []).length; rows.push([fullTime(a.t), who(r.ma, true), lopOf(r.ma), stName(a.l), lvName(a), Math.round(pct(a) * 100), a.n - sai, sai, a.d || '', needTxt(a)]); });
   if (rows.length < 2) { toast('Chưa có lượt học để tải'); return; }
   var csv = csvOf(rows);
   saveFile('lich-su-hoc' + tkFileTag() + '.csv', csv, 'text/csv', function () { showCopy('Lịch sử học (dán vào Excel)', csv.slice(1)); });
@@ -6240,12 +6265,14 @@ function fbStart() {
 function fbDoc(ma, a, inf) {
   var d = { ma: ma, ten: (inf && inf.ten) || '', lop: (inf && inf.lop) || '', i: a.i, l: a.l, m: a.m || 0, t: a.t, n: a.n, k: a.k, w: a.w || [], x: a.x || [] };
   if (a.v) d.v = a.v;
+  if (a.d) d.d = a.d;
   if (a.s) d.s = a.s.map(function (x) { return { q: x[0], v: x[1] }; });
   return d;
 }
 function fbAtt(d) {
   var a = { i: d.i, l: d.l, m: d.m, t: d.t, n: d.n, k: d.k, w: d.w || [], x: d.x || [] };
   if (d.v) a.v = d.v;
+  if (d.d) a.d = d.d;
   if (d.s) a.s = d.s.map(function (x) { return [x.q, x.v]; });
   return a;
 }
